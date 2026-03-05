@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Music Copyright Checker — System Architecture</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --accent: #e8ff47;
+    --accent2: #47b4ff;
+    --accent3: #ff6b6b;
+    --accent4: #b47fff;
+    --text: #e8e8f0;
+    --muted: #5a5a7a;
+    --card: #13131f;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.012) 2px, rgba(255,255,255,0.012) 4px);
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  header {
+    padding: 60px 60px 40px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  header::after {
+    content: 'COPYRIGHT';
+    position: absolute;
+    right: -20px;
+    top: 50%;
+    transform: translateY(-50%) rotate(90deg);
+    font-size: 120px;
+    font-weight: 800;
+    color: rgba(232,255,71,0.04);
+    letter-spacing: 0.3em;
+    pointer-events: none;
+  }
+
+  .tag {
+    display: inline-block;
+    background: var(--accent);
+    color: #000;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 4px 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-size: clamp(36px, 5vw, 72px);
+    font-weight: 800;
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    margin-bottom: 16px;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    max-width: 600px;
+    line-height: 1.8;
+  }
+
+  /* Nav tabs */
+  .nav {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 0 60px;
+    overflow-x: auto;
+  }
+
+  .nav-btn {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    padding: 16px 20px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .nav-btn:hover { color: var(--text); }
+  .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* Sections */
+  .section { display: none; padding: 50px 60px; }
+  .section.active { display: block; }
+
+  /* Architecture diagram */
+  .arch-grid {
+    display: grid;
+    grid-template-columns: 1fr 40px 1fr 40px 1fr 40px 1fr;
+    gap: 0;
+    align-items: start;
+    margin-bottom: 50px;
+  }
+
+  .arch-col { display: flex; flex-direction: column; gap: 12px; }
+
+  .arch-col-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    text-align: center;
+  }
+
+  .arch-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 42px;
+    color: var(--muted);
+    font-size: 20px;
+  }
+
+  .node {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.25s;
+    text-align: center;
+  }
+
+  .node:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .node.highlight { border-color: var(--accent); box-shadow: 0 0 20px rgba(232,255,71,0.1); }
+  .node.blue { border-color: rgba(71,180,255,0.3); }
+  .node.blue:hover { border-color: var(--accent2); box-shadow: 0 0 20px rgba(71,180,255,0.1); }
+  .node.red { border-color: rgba(255,107,107,0.3); }
+  .node.red:hover { border-color: var(--accent3); }
+  .node.purple { border-color: rgba(180,127,255,0.3); }
+  .node.purple:hover { border-color: var(--accent4); }
+
+  .node-icon { font-size: 22px; margin-bottom: 6px; }
+  .node-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+  .node-desc {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .node-badge {
+    position: absolute;
+    top: -8px; right: 8px;
+    background: var(--accent);
+    color: #000;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 7px;
+    font-weight: 600;
+    padding: 2px 6px;
+    letter-spacing: 0.1em;
+  }
+  .node-badge.blue-badge { background: var(--accent2); }
+  .node-badge.purple-badge { background: var(--accent4); }
+
+  /* Steps list */
+  .steps { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .step {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 24px;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+
+  .step:hover { border-color: var(--border); }
+
+  .step-num {
+    font-size: 60px;
+    font-weight: 800;
+    color: rgba(232,255,71,0.06);
+    position: absolute;
+    top: -10px; right: 16px;
+    line-height: 1;
+    font-family: 'Syne', sans-serif;
+  }
+
+  .step-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+
+  .step h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    line-height: 1.3;
+  }
+
+  .step p {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+
+  .step ul {
+    list-style: none;
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .step ul li {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    padding-left: 14px;
+    position: relative;
+    line-height: 1.6;
+  }
+
+  .step ul li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+
+  /* API cards */
+  .api-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+
+  .api-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 24px;
+    transition: all 0.25s;
+  }
+
+  .api-card:hover { border-color: var(--accent2); transform: translateY(-3px); }
+
+  .api-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .api-icon { font-size: 26px; }
+
+  .api-name {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .api-type {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .api-desc {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.8;
+    margin-bottom: 14px;
+  }
+
+  .api-endpoints {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .endpoint {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    padding: 5px 10px;
+    color: var(--accent2);
+    letter-spacing: 0.05em;
+  }
+
+  .endpoint .method {
+    color: var(--accent);
+    margin-right: 8px;
+  }
+
+  /* AI tools */
+  .ai-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  .ai-card {
+    background: var(--card);
+    border: 1px solid rgba(180,127,255,0.2);
+    padding: 24px;
+    transition: all 0.25s;
+  }
+
+  .ai-card:hover { border-color: var(--accent4); box-shadow: 0 0 20px rgba(180,127,255,0.08); }
+
+  .ai-card-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+    color: var(--accent4);
+  }
+
+  .ai-card-role {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    margin-bottom: 12px;
+    letter-spacing: 0.05em;
+  }
+
+  .ai-card p {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+
+  .ai-tools-list {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .tool-chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    padding: 3px 8px;
+    border: 1px solid rgba(180,127,255,0.3);
+    color: var(--accent4);
+    letter-spacing: 0.1em;
+  }
+
+  /* Output section */
+  .output-mockup {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .mockup-bar {
+    background: var(--surface);
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; }
+  .dot.y { background: #febc2e; }
+  .dot.g { background: #28c840; }
+
+  .mockup-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-left: 8px;
+  }
+
+  .mockup-body { padding: 24px; }
+
+  .result-row {
+    display: grid;
+    grid-template-columns: 180px 1fr 120px;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+  }
+
+  .result-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .result-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text);
+  }
+
+  .result-status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    padding: 4px 10px;
+    text-align: center;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .status-found { background: rgba(232,255,71,0.1); color: var(--accent); border: 1px solid rgba(232,255,71,0.3); }
+  .status-warn { background: rgba(255,107,107,0.1); color: var(--accent3); border: 1px solid rgba(255,107,107,0.3); }
+  .status-ok { background: rgba(71,180,255,0.1); color: var(--accent2); border: 1px solid rgba(71,180,255,0.3); }
+  .status-check { background: rgba(180,127,255,0.1); color: var(--accent4); border: 1px solid rgba(180,127,255,0.3); }
+
+  .confidence-bar { height: 4px; background: var(--border); margin-top: 4px; }
+  .confidence-fill { height: 100%; background: var(--accent); }
+
+  /* Code block */
+  .code-block {
+    background: #08080f;
+    border: 1px solid var(--border);
+    padding: 20px 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 2;
+    color: var(--muted);
+    overflow-x: auto;
+    margin: 16px 0;
+  }
+
+  .code-block .kw { color: var(--accent4); }
+  .code-block .str { color: var(--accent); }
+  .code-block .fn { color: var(--accent2); }
+  .code-block .cm { color: #333355; }
+
+  /* Section title */
+  .section-title {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .section-title::before {
+    content: '';
+    width: 24px; height: 1px;
+    background: var(--accent);
+  }
+
+  h2 {
+    font-size: clamp(24px, 3vw, 42px);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: 8px;
+    line-height: 1;
+  }
+
+  h2 em { font-style: normal; color: var(--accent); }
+
+  .section-intro {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.8;
+    margin-bottom: 36px;
+    max-width: 700px;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); }
+
+  @media (max-width: 900px) {
+    header, .nav, .section { padding-left: 24px; padding-right: 24px; }
+    .arch-grid { grid-template-columns: 1fr; }
+    .arch-arrow { display: none; }
+    .steps { grid-template-columns: 1fr; }
+    .ai-grid { grid-template-columns: 1fr; }
+    .result-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="tag">System Architecture Plan v1.0</div>
+  <h1>Music <span>Copyright</span><br>Checker</h1>
+  <p class="subtitle">AI-powered pipeline using Spotify API, public copyright registries, audio fingerprinting, and multi-agent reasoning to determine track ownership and licensing risk.</p>
+</header>
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="showSection('overview')">01 · Overview</button>
+  <button class="nav-btn" onclick="showSection('pipeline')">02 · Pipeline</button>
+  <button class="nav-btn" onclick="showSection('apis')">03 · APIs & DBs</button>
+  <button class="nav-btn" onclick="showSection('ai')">04 · AI Agents</button>
+  <button class="nav-btn" onclick="showSection('output')">05 · Output Schema</button>
+  <button class="nav-btn" onclick="showSection('code')">06 · Code Snippets</button>
+</nav>
+
+<!-- SECTION 1: OVERVIEW -->
+<div class="section active" id="overview">
+  <div class="section-title">System Overview</div>
+  <h2>How the <em>System</em> Works</h2>
+  <p class="section-intro">The checker resolves copyright ownership for any Spotify track by chaining Spotify metadata → credit parsing → registry lookups → audio fingerprinting → AI synthesis. Each layer narrows uncertainty and increases confidence in the final verdict.</p>
+
+  <div class="arch-grid">
+    <div class="arch-col">
+      <div class="arch-col-label">Input</div>
+      <div class="node highlight">
+        <div class="node-icon">🎵</div>
+        <div class="node-title">Spotify Track URL</div>
+        <div class="node-desc">Track ID / URI / share link</div>
+      </div>
+      <div class="node highlight">
+        <div class="node-icon">🔍</div>
+        <div class="node-title">Track Metadata</div>
+        <div class="node-desc">Title, artist, album, ISRC, release date</div>
+      </div>
+    </div>
+
+    <div class="arch-arrow">→</div>
+
+    <div class="arch-col">
+      <div class="arch-col-label">Extraction</div>
+      <div class="node blue">
+        <div class="node-badge blue-badge">API</div>
+        <div class="node-icon">🎤</div>
+        <div class="node-title">Credits Parser</div>
+        <div class="node-desc">Spotify /credits endpoint: producers, writers, publishers, labels</div>
+      </div>
+      <div class="node blue">
+        <div class="node-icon">🏷️</div>
+        <div class="node-title">Label Resolver</div>
+        <div class="node-desc">MusicBrainz, Discogs, Last.fm cross-ref</div>
+      </div>
+      <div class="node blue">
+        <div class="node-icon">🔊</div>
+        <div class="node-title">Audio Fingerprint</div>
+        <div class="node-desc">AcoustID / AudD on 30s preview</div>
+      </div>
+    </div>
+
+    <div class="arch-arrow">→</div>
+
+    <div class="arch-col">
+      <div class="arch-col-label">Registry Lookup</div>
+      <div class="node red">
+        <div class="node-badge" style="background:var(--accent3)">DB</div>
+        <div class="node-icon">📋</div>
+        <div class="node-title">Copyright Registries</div>
+        <div class="node-desc">ASCAP, BMI, SESAC, PRS, SOCAN public search</div>
+      </div>
+      <div class="node red">
+        <div class="node-icon">🌐</div>
+        <div class="node-title">ISRC Lookup</div>
+        <div class="node-desc">IFPI ISRC DB, Open ISRC API</div>
+      </div>
+      <div class="node red">
+        <div class="node-icon">📚</div>
+        <div class="node-title">US Copyright Office</div>
+        <div class="node-desc">Copyright.gov public catalog search</div>
+      </div>
+    </div>
+
+    <div class="arch-arrow">→</div>
+
+    <div class="arch-col">
+      <div class="arch-col-label">AI Synthesis</div>
+      <div class="node purple">
+        <div class="node-badge purple-badge">AI</div>
+        <div class="node-icon">🤖</div>
+        <div class="node-title">Orchestrator Agent</div>
+        <div class="node-desc">Claude / GPT-4 with tool use — synthesizes all signals</div>
+      </div>
+      <div class="node purple">
+        <div class="node-icon">⚖️</div>
+        <div class="node-title">Risk Assessor</div>
+        <div class="node-desc">Classifies copyright type, dispute risk, licensing path</div>
+      </div>
+      <div class="node purple">
+        <div class="node-icon">📊</div>
+        <div class="node-title">Confidence Scorer</div>
+        <div class="node-desc">Weighted scoring from all data sources</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 2: PIPELINE -->
+<div class="section" id="pipeline">
+  <div class="section-title">Data Pipeline Steps</div>
+  <h2>Step-by-<em>Step</em> Flow</h2>
+  <p class="section-intro">Each step enriches the copyright picture. Steps 1–3 are always run. Steps 4–6 are triggered only when earlier steps return incomplete or ambiguous data.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div class="step-tag">Input & Auth</div>
+      <h3>Spotify Track Resolution</h3>
+      <p>Accept track URL, URI, or ISRC. Exchange Spotify client credentials for an access token. Fetch full track object including ISRC, album details, and all artist IDs.</p>
+      <ul>
+        <li>GET /tracks/{id} — full metadata</li>
+        <li>GET /albums/{id} — label, release date, copyright field</li>
+        <li>Extract album.copyrights[] array (℗ + ©)</li>
+        <li>Extract external_ids.isrc for registry matching</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <div class="step-num">02</div>
+      <div class="step-tag">Credits Parsing</div>
+      <h3>Spotify Credits Endpoint</h3>
+      <p>The internal Spotify credits endpoint (via partner API or web scraping the track page) returns structured credit data not available in the public API.</p>
+      <ul>
+        <li>Songwriters / Composers (mechanical rights)</li>
+        <li>Record producers (sound recording rights)</li>
+        <li>Publishers (sync & print rights)</li>
+        <li>Recording label (master rights)</li>
+        <li>Performing rights org (PRO affiliation)</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <div class="step-num">03</div>
+      <div class="step-tag">Registry Search</div>
+      <h3>PRO & Copyright Registry Lookups</h3>
+      <p>Use writer/publisher names extracted from credits to query performing rights organizations and copyright registries. Run searches in parallel.</p>
+      <ul>
+        <li>ASCAP ACE database (title + writer search)</li>
+        <li>BMI Repertoire search</li>
+        <li>SESAC repertory lookup</li>
+        <li>US Copyright Office (copyright.gov/public-records)</li>
+        <li>PRS for Music (UK), SOCAN (Canada)</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <div class="step-num">04</div>
+      <div class="step-tag">Cross-Reference</div>
+      <h3>MusicBrainz + Wikidata Enrichment</h3>
+      <p>Query MusicBrainz for MBID, release group, label relations. Cross-reference against Wikidata for disambiguation and dispute history.</p>
+      <ul>
+        <li>MusicBrainz ISRC lookup → canonical recording</li>
+        <li>Label relation → identify distributor vs. rights holder</li>
+        <li>Wikidata: ownership transfers, mergers, splits</li>
+        <li>Discogs label catalog for indie verification</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <div class="step-num">05</div>
+      <div class="step-tag">Audio Fingerprint</div>
+      <h3>Acoustic Fingerprint Verification</h3>
+      <p>Fingerprint the 30-second Spotify preview URL against AcoustID and AudD databases to confirm identity and surface alternate registrations.</p>
+      <ul>
+        <li>Download preview_url (30s MP3, no auth needed)</li>
+        <li>Generate AcoustID fingerprint via fpcalc</li>
+        <li>Query AcoustID API → MBID confirmation</li>
+        <li>AudD API → song ID + Apple Music / Deezer cross-ref</li>
+        <li>Detect covers, samples, or re-recordings</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <div class="step-num">06</div>
+      <div class="step-tag">AI Synthesis</div>
+      <h3>Multi-Agent Reasoning + Verdict</h3>
+      <p>The orchestrator AI agent receives all collected data, resolves conflicts, identifies gaps, calls web search for missing info, and produces a structured copyright verdict.</p>
+      <ul>
+        <li>Tool: web_search for dispute / lawsuit history</li>
+        <li>Tool: fetch PRO pages if scraping needed</li>
+        <li>Identify master vs. composition rights holders</li>
+        <li>Classify: Original / Cover / Sample / Public Domain</li>
+        <li>Output: confidence score, risk level, licensing path</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 3: APIs & DBs -->
+<div class="section" id="apis">
+  <div class="section-title">APIs & Databases</div>
+  <h2><em>Data Sources</em> & Endpoints</h2>
+  <p class="section-intro">Every source serves a specific copyright signal. Combine them to triangulate the full ownership picture for both composition and master rights.</p>
+
+  <div class="api-grid">
+    <div class="api-card">
+      <div class="api-header">
+        <div class="api-icon">🎧</div>
+        <div>
+          <div class="api-name">Spotify Web API</div>
+          <div class="api-type">Official · OAuth 2.0 · Free tier</div>
+        </div>
+      </div>
+      <div class="api-desc">Primary source. Provides track metadata, ISRC, album copyright field (℗/©), artist IDs, and 30s preview audio for fingerprinting.</div>
+      <div class="api-endpoints">
+        <div class="endpoint"><span class="method">GET</span>/tracks/{id}</div>
+        <div class="endpoint"><span class="method">GET</span>/albums/{id}</div>
+        <div class="endpoint"><span class="method">GET</span>/artists/{id}</div>
+        <div class="endpoint"><span class="method">GET</span>/audio-analysis/{id}</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-header">
+        <div class="api-icon">🎼</div>
+        <div>
+          <div class="api-name">Spotify Credits</div>
+          <div class="api-type">Internal Partner API · Web Scrape fallback</div>
+        </div>
+      </div>
+      <div class="api-desc">Credits endpoint returns songwriter, producer, publisher, and PRO data. Access via partner program or by parsing the track page HTML (track.spotify.com/credits).</div>
+      <div class="api-endpoints">
+        <div class="endpoint"><span class="method">GET</span>/track-credits/v0/{id}</div>
+        <div class="endpoint"><span class="method">HTML</span>open.spotify.com/track/{id}</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-header">
+        <div class="api-icon">🎵</div>
+        <div>
+          <div class="api-name">MusicBrainz</div>
+          <div class="api-type">Public · No auth · CC0</div>
+        </div>
+      </div>
+      <div class="api-desc">Open music encyclopedia. Lookup by ISRC returns canonical recording MBID, release group, associated labels, and work relationships.</div>
+      <div class="api-endpoints">
+        <div class="endpoint"><span class="method">GET</span>/isrc/{isrc}</div>
+        <div class="endpoint"><span class="method">GET</span>/recording/{mbid}</div>
+        <div class="endpoint"><span class="method">GET</span>/work/{mbid}</div>
+        <div class="endpoint"><span class="method">GET</span>/label/{mbid}</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-header">
+        <div class="api-icon">🔊</div>
+        <div>
+          <div class="api-name">AcoustID</div>
+          <div class="api-type">Public · API key · Free</div>
+        </div>
+      </div>
+      <div class="api-desc">Audio fingerprint database. Generates a fingerprint from the preview audio and returns matching MBIDs, confirming the recording's identity and surfacing alternate registrations.</div>
+      <div class="api-endpoints">
+        <div class="endpoint"><span class="method">POST</span>/v2/lookup</div>
+        <div class="endpoint"><span class="method">TOOL</span>fpcalc (local)</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-header">
+        <div class="api-icon">🎶</div>
+        <div>
+          <div class="api-name">AudD Music API</div>
+          <div class="api-type">Commercial · API key · Per-request</div>
+        </div>
+      </div>
+      <div class="api-desc">Identify songs from audio. Returns Apple Music / Deezer metadata, publisher, UPC, and label — useful for cross-platform copyright verification.</div>
+      <div class="api-endpoints">
+        <div class="endpoint"><span class="method">POST</span>/v1/ (audio upload)</div>
+        <div class="endpoint"><span class="method">GET</span>/v1/?url={preview_url}</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-header">
+        <div class="api-icon">📋</div>
+        <div>
+          <div class="api-name">ASCAP ACE</div>
+          <div class="api-type">Public Search · Web scrape / manual</div>
+        </div>
+      </div>
+      <div class="api-desc">American Society of Composers, Authors, and Publishers. Search by title + writer to find performing rights registration for US composition copyright.</div>
+      <div class="api-endpoints">
+        <div class="endpoint"><span class="method">GET</span>ascap.com/repertory#ace/search</div>
+        <div class="endpoint"><span class="method">SCRAPE</span>title, writer, publisher</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-header">
+        <div class="api-icon">🎯</div>
+        <div>
+          <div class="api-name">BMI Repertoire</div>
+          <div class="api-type">Public Search · Web scrape</div>
+        </div>
+      </div>
+      <div class="api-desc">Broadcast Music Inc. Second-largest US PRO. Search returns work ID, performing rights holder, publisher, and co-writer splits.</div>
+      <div class="api-endpoints">
+        <div class="endpoint"><span class="method">GET</span>repertoire.bmi.com</div>
+        <div class="endpoint"><span class="method">PARAMS</span>title, writer, publisher</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-header">
+        <div class="api-icon">📚</div>
+        <div>
+          <div class="api-name">US Copyright Office</div>
+          <div class="api-type">Public Records · Free</div>
+        </div>
+      </div>
+      <div class="api-desc">Official federal registration. Search the Public Records Portal for sound recording and composition registrations, registration numbers, and claimants.</div>
+      <div class="api-endpoints">
+        <div class="endpoint"><span class="method">GET</span>publicrecords.copyright.gov</div>
+        <div class="endpoint"><span class="method">API</span>cocatalog.loc.gov (Z39.50)</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-header">
+        <div class="api-icon">🌍</div>
+        <div>
+          <div class="api-name">Wikidata / Wikipedia</div>
+          <div class="api-type">Public · SPARQL API · Free</div>
+        </div>
+      </div>
+      <div class="api-desc">Query for artist entities, label acquisition history, rights transfers, and dispute citations. Essential for ownership chains and historical copyright events.</div>
+      <div class="api-endpoints">
+        <div class="endpoint"><span class="method">SPARQL</span>query.wikidata.org</div>
+        <div class="endpoint"><span class="method">GET</span>en.wikipedia.org/api</div>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-header">
+        <div class="api-icon">💿</div>
+        <div>
+          <div class="api-name">Discogs API</div>
+          <div class="api-type">Public · OAuth · 60 req/min</div>
+        </div>
+      </div>
+      <div class="api-desc">Comprehensive release database with label catalog numbers, UPC, and format metadata. Excellent for indie / underground releases with limited PRO registration.</div>
+      <div class="api-endpoints">
+        <div class="endpoint"><span class="method">GET</span>/database/search?type=release</div>
+        <div class="endpoint"><span class="method">GET</span>/releases/{id}</div>
+        <div class="endpoint"><span class="method">GET</span>/labels/{id}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 4: AI Agents -->
+<div class="section" id="ai">
+  <div class="section-title">AI Agent Architecture</div>
+  <h2>Multi-<em>Agent</em> Design</h2>
+  <p class="section-intro">A chain of specialized AI agents — each with distinct tools and responsibilities — produces a copyright verdict that no single API could provide alone.</p>
+
+  <div class="ai-grid">
+    <div class="ai-card">
+      <div class="ai-card-title">Orchestrator Agent</div>
+      <div class="ai-card-role">Claude Sonnet / GPT-4o · Main controller</div>
+      <p>Receives the Spotify track ID and manages the full pipeline. Decides which tools to call, in which order, and when to stop. Synthesizes all sub-agent outputs into a final copyright report.</p>
+      <div class="ai-tools-list">
+        <span class="tool-chip">spotify_lookup</span>
+        <span class="tool-chip">credits_fetch</span>
+        <span class="tool-chip">dispatch_agents</span>
+        <span class="tool-chip">aggregate_results</span>
+        <span class="tool-chip">web_search</span>
+      </div>
+    </div>
+
+    <div class="ai-card">
+      <div class="ai-card-title">Credits Parser Agent</div>
+      <div class="ai-card-role">LLM + regex · Structured extraction</div>
+      <p>Takes raw HTML or JSON from the Spotify credits endpoint / page and extracts structured entities: writers, composers, producers, publishers, PRO affiliations. Handles inconsistent formatting.</p>
+      <div class="ai-tools-list">
+        <span class="tool-chip">html_parse</span>
+        <span class="tool-chip">entity_extract</span>
+        <span class="tool-chip">normalize_names</span>
+        <span class="tool-chip">dedup_credits</span>
+      </div>
+    </div>
+
+    <div class="ai-card">
+      <div class="ai-card-title">Registry Lookup Agent</div>
+      <div class="ai-card-role">Tool-use · Parallel API calls</div>
+      <p>Queries ASCAP, BMI, SESAC, Copyright Office, and international PROs in parallel using writer/title data. Normalizes responses into a unified rights object with source attribution.</p>
+      <div class="ai-tools-list">
+        <span class="tool-chip">ascap_search</span>
+        <span class="tool-chip">bmi_search</span>
+        <span class="tool-chip">copyright_office</span>
+        <span class="tool-chip">intl_pro_search</span>
+      </div>
+    </div>
+
+    <div class="ai-card">
+      <div class="ai-card-title">Discrepancy Resolver</div>
+      <div class="ai-card-role">Reasoning LLM · Conflict detection</div>
+      <p>Compares data across all sources, flags conflicts (e.g. different publishers in ASCAP vs BMI), and attempts resolution via additional web searches, Wikipedia, or music news databases.</p>
+      <div class="ai-tools-list">
+        <span class="tool-chip">conflict_detect</span>
+        <span class="tool-chip">web_search</span>
+        <span class="tool-chip">news_search</span>
+        <span class="tool-chip">explain_gap</span>
+      </div>
+    </div>
+
+    <div class="ai-card">
+      <div class="ai-card-title">Sample Detector</div>
+      <div class="ai-card-role">Audio analysis · WhoSampled API</div>
+      <p>Checks if the track contains samples that require additional clearance. Queries WhoSampled.com (scrape/unofficial API) and cross-refs with known sample disputes. Also checks interpolations.</p>
+      <div class="ai-tools-list">
+        <span class="tool-chip">whosampled_lookup</span>
+        <span class="tool-chip">interpolation_check</span>
+        <span class="tool-chip">derivative_rights</span>
+      </div>
+    </div>
+
+    <div class="ai-card">
+      <div class="ai-card-title">Risk Assessor Agent</div>
+      <div class="ai-card-role">Classifier · Final verdict writer</div>
+      <p>Takes the synthesized rights object and outputs: copyright type, rights holder(s) for master + composition, risk level for use, recommended licensing path, and confidence percentage.</p>
+      <div class="ai-tools-list">
+        <span class="tool-chip">classify_risk</span>
+        <span class="tool-chip">license_path</span>
+        <span class="tool-chip">confidence_score</span>
+        <span class="tool-chip">render_report</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 5: OUTPUT SCHEMA -->
+<div class="section" id="output">
+  <div class="section-title">Output Format</div>
+  <h2>Copyright <em>Verdict</em> Schema</h2>
+  <p class="section-intro">The final output is a structured JSON report with a human-readable summary. Below is an example verdict for a typical major-label track.</p>
+
+  <div class="output-mockup">
+    <div class="mockup-bar">
+      <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+      <div class="mockup-title">copyright_verdict.json — Track: "Blinding Lights" · The Weeknd</div>
+    </div>
+    <div class="mockup-body">
+      <div class="result-row">
+        <div class="result-label">Track ISRC</div>
+        <div class="result-value">CAUM71900500</div>
+        <div class="result-status status-found">VERIFIED</div>
+      </div>
+      <div class="result-row">
+        <div class="result-label">Master Rights</div>
+        <div class="result-value">Republic Records / Universal Music Group</div>
+        <div class="result-status status-found">CONFIRMED</div>
+      </div>
+      <div class="result-row">
+        <div class="result-label">Composition Rights</div>
+        <div class="result-value">The Weeknd (Abel Tesfaye), DaHeala, Max Martin, Oscar Holter</div>
+        <div class="result-status status-found">4 WRITERS</div>
+      </div>
+      <div class="result-row">
+        <div class="result-label">Publishers</div>
+        <div class="result-value">Universal Music Publishing Group, MXM Music AB</div>
+        <div class="result-status status-ok">2 PUBLISHERS</div>
+      </div>
+      <div class="result-row">
+        <div class="result-label">PRO Registration</div>
+        <div class="result-value">SOCAN (Canada) · BMI (US)</div>
+        <div class="result-status status-found">REGISTERED</div>
+      </div>
+      <div class="result-row">
+        <div class="result-label">Sample Detected</div>
+        <div class="result-value">No samples identified</div>
+        <div class="result-status status-ok">CLEAR</div>
+      </div>
+      <div class="result-row">
+        <div class="result-label">Copyright Type</div>
+        <div class="result-value">Original composition · Active registration</div>
+        <div class="result-status status-warn">LICENSED ONLY</div>
+      </div>
+      <div class="result-row">
+        <div class="result-label">Sync License Path</div>
+        <div class="result-value">Contact UMPG for sync · Republic for master</div>
+        <div class="result-status status-check">ACTION REQ.</div>
+      </div>
+      <div class="result-row">
+        <div class="result-label">Overall Confidence</div>
+        <div>
+          <div class="result-value">94%</div>
+          <div class="confidence-bar"><div class="confidence-fill" style="width:94%"></div></div>
+        </div>
+        <div class="result-status status-found">HIGH</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 6: CODE -->
+<div class="section" id="code">
+  <div class="section-title">Implementation Snippets</div>
+  <h2>Code <em>Reference</em></h2>
+  <p class="section-intro">Key implementation patterns for each stage of the pipeline.</p>
+
+  <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:8px;letter-spacing:0.1em;">STEP 1 · SPOTIFY TRACK FETCH</p>
+  <div class="code-block">
+<span class="cm">// Fetch track metadata + album copyright</span>
+<span class="kw">const</span> token = <span class="kw">await</span> <span class="fn">getSpotifyToken</span>(CLIENT_ID, CLIENT_SECRET);
+
+<span class="kw">const</span> track = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">`https://api.spotify.com/v1/tracks/${trackId}`</span>, {
+  headers: { Authorization: <span class="str">`Bearer ${token}`</span> }
+}).<span class="fn">then</span>(r => r.<span class="fn">json</span>());
+
+<span class="kw">const</span> album = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">`https://api.spotify.com/v1/albums/${track.album.id}`</span>, {
+  headers: { Authorization: <span class="str">`Bearer ${token}`</span> }
+}).<span class="fn">then</span>(r => r.<span class="fn">json</span>());
+
+<span class="cm">// Extract key copyright fields</span>
+<span class="kw">const</span> data = {
+  isrc:       track.external_ids.isrc,
+  previewUrl: track.preview_url,         <span class="cm">// 30s MP3 for fingerprinting</span>
+  copyrights: album.copyrights,          <span class="cm">// [{type:"P", text:"℗ 2019 Republic"}, ...]</span>
+  label:      album.label,
+  releaseDate: album.release_date
+};
+  </div>
+
+  <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:8px;letter-spacing:0.1em;margin-top:28px;">STEP 2 · SPOTIFY CREDITS PAGE PARSE</p>
+  <div class="code-block">
+<span class="cm">// Spotify credits page (no auth needed for public tracks)</span>
+<span class="kw">const</span> creditsHtml = <span class="kw">await</span> <span class="fn">fetch</span>(
+  <span class="str">`https://open.spotify.com/track/${trackId}`</span>,
+  { headers: { <span class="str">'User-Agent'</span>: <span class="str">'Mozilla/5.0'</span> } }
+).<span class="fn">then</span>(r => r.<span class="fn">text</span>());
+
+<span class="cm">// Extract __NEXT_DATA__ JSON which contains credits</span>
+<span class="kw">const</span> match = creditsHtml.<span class="fn">match</span>(<span class="str">/&lt;script id="__NEXT_DATA__"[^>]*>([^&lt;]+)/</span>);
+<span class="kw">const</span> nextData = <span class="fn">JSON.parse</span>(match[1]);
+<span class="kw">const</span> credits = nextData?.props?.pageProps?.track?.credits;
+
+<span class="cm">// Pass raw credits to AI parsing agent</span>
+<span class="kw">const</span> structured = <span class="kw">await</span> <span class="fn">creditsParserAgent</span>(credits);
+<span class="cm">// → { writers: [], producers: [], publishers: [], proAffiliations: [] }</span>
+  </div>
+
+  <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:8px;letter-spacing:0.1em;margin-top:28px;">STEP 3 · MUSICBRAINZ ISRC LOOKUP</p>
+  <div class="code-block">
+<span class="kw">const</span> mb = <span class="kw">await</span> <span class="fn">fetch</span>(
+  <span class="str">`https://musicbrainz.org/ws/2/isrc/${isrc}?inc=releases+labels+artist-credits&fmt=json`</span>,
+  { headers: { <span class="str">'User-Agent'</span>: <span class="str">'CopyrightChecker/1.0 (you@email.com)'</span> } }
+).<span class="fn">then</span>(r => r.<span class="fn">json</span>());
+
+<span class="kw">const</span> recording = mb.recordings[0];
+<span class="kw">const</span> label = recording?.releases?.[0]?.["label-info"]?.[0]?.label?.name;
+  </div>
+
+  <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:8px;letter-spacing:0.1em;margin-top:28px;">STEP 4 · CLAUDE AI ORCHESTRATOR (Tool Use)</p>
+  <div class="code-block">
+<span class="kw">const</span> response = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'https://api.anthropic.com/v1/messages'</span>, {
+  method: <span class="str">'POST'</span>,
+  headers: { <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span> },
+  body: <span class="fn">JSON.stringify</span>({
+    model: <span class="str">'claude-sonnet-4-20250514'</span>,
+    max_tokens: 1000,
+    system: <span class="str">`You are a music copyright analysis agent. 
+Given track metadata and credits, synthesize a copyright verdict.
+Use your tools to look up any missing data.
+Return a structured JSON verdict.`</span>,
+    tools: [
+      { name: <span class="str">'search_ascap'</span>, description: <span class="str">'Search ASCAP ACE database'</span>, input_schema: {...} },
+      { name: <span class="str">'search_bmi'</span>, description: <span class="str">'Search BMI repertoire'</span>, input_schema: {...} },
+      { name: <span class="str">'web_search'</span>, description: <span class="str">'Search web for copyright info'</span>, input_schema: {...} }
+    ],
+    messages: [{
+      role: <span class="str">'user'</span>,
+      content: <span class="str">`Analyze copyright for:
+Track: ${track.name}
+Artists: ${artists}
+ISRC: ${isrc}
+Label: ${label}
+Credits: ${JSON.stringify(structuredCredits)}
+Album copyright: ${JSON.stringify(copyrights)}`</span>
+    }]
+  })
+});
+  </div>
+</div>
+
+<script>
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

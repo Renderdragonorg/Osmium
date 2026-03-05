@@ -1,0 +1,39 @@
+{
+  "name": "osmium-cli",
+  "version": "1.0.0",
+  "description": "AI-powered music copyright checker CLI — resolves track ownership via Spotify, PRO registries, audio fingerprinting, and multi-agent reasoning",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "osmium": "dist/index.js"
+  },
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "music",
+    "copyright",
+    "spotify",
+    "cli",
+    "ai"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@openrouter/sdk": "^0.9.11",
+    "@tavily/core": "^0.7.2",
+    "chalk": "^5.4.1",
+    "cheerio": "^1.0.0",
+    "commander": "^13.1.0",
+    "dotenv": "^16.4.7",
+    "openai": "^6.25.0",
+    "ora": "^8.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

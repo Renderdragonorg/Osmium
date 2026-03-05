@@ -1,0 +1,144 @@
+# AI Summary Feature — Copyright & Licensing Verdict with Web Search
+
+After all research steps complete, Osmium should produce a final **AI-powered summary** that:
+1. Checks **master rights** (label/studio ownership)
+2. Searches the **studio/label** online to verify if they enforce licensing
+3. Gives a clear **YES / NO / UNCLEAR** answer: *"Does this track require a license to use?"*
+4. Provides **actionable licensing guidance**
+
+---
+
+## Web Search API Options
+
+The AI summary agent needs to search the web in real-time to look up labels, studios, and licensing policies. Here are the **4 best options**, ranked by recommendation:
+
+| API | Free Tier | Cost After Free | Best For | Node.js SDK |
+|---|---|---|---|---|
+| **🥇 Tavily** | 1,000 credits/mo | $0.008/credit | AI agents & RAG — returns structured, AI-ready results | `@tavily/core` |
+| **🥈 Brave Search** | ~1,000 queries/mo (credit-based) | $5/1,000 queries | General web search, independent index | `brave-search` |
+| **🥉 SerpAPI** | 250 searches/mo | $25/mo for 1,000 | Google SERP scraping, structured JSON | `serpapi` |
+| **Google Custom Search** | 100/day | $5/1,000 queries | ⚠️ **Closed to new customers** — avoid | `googleapis` |
+
+### Recommendation
+
+> [!TIP]
+> **Tavily** is the strongest choice because:
+> - **1,000 free credits/month** — enough for ~500-1,000 searches
+> - **Built for AI agents** — returns clean, structured content ideal for LLM consumption
+> - **Official TypeScript SDK** — `@tavily/core` with proper types
+> - **Fast** — optimized for real-time AI workflows
+>
+> **Brave Search** is a solid runner-up if you prefer a more general-purpose search engine with its own independent index.
+
+---
+
+## Proposed Changes
+
+### New Step: AI Summary (Step 9)
+
+The pipeline currently has 8 steps. We add **Step 9: "ai-summary"** that runs after the risk assessment and produces a human-readable copyright/licensing summary.
+
+---
+
+### Types
+
+#### [MODIFY] [index.ts](file:///f:/Osmium/src/types/index.ts)
+
+- Add `AISummary` interface with fields: `isCopyrighted`, `requiresLicense`, `masterRightsHolder`, `labelInfo`, `licensingVerdict`, `explanation`, `webSearchSources`
+- Add `"ai-summary"` to the [PipelineStepName](file:///f:/Osmium/src/types/index.ts#227-236) union
+- Add `aiSummary` field to [CopyrightVerdict](file:///f:/Osmium/src/types/index.ts#178-222)
+
+---
+
+### Web Search Service
+
+#### [NEW] [web-search.ts](file:///f:/Osmium/src/services/web-search.ts)
+
+- Implements a `searchWeb(query: string, apiKey: string): Promise<WebSearchResult[]>` function
+- Uses **Tavily** (primary recommendation) or **Brave Search** (alternative) via their SDK
+- Searches for label/studio licensing policies, copyright enforcement info
+- Returns structured results (title, URL, content snippet)
+
+---
+
+### AI Summary Agent
+
+#### [NEW] [summary-agent.ts](file:///f:/Osmium/src/agents/summary-agent.ts)
+
+- Takes the completed [CopyrightVerdict](file:///f:/Osmium/src/types/index.ts#178-222) + web search results about the label/studio
+- Uses OpenRouter LLM to produce a **clear, human-readable summary**:
+  - Is the track copyrighted? (YES/NO/UNCLEAR)
+  - Does using this track require a license? (YES/NO/DEPENDS)
+  - Who holds master rights?
+  - What kind of label is it? (major label, indie, self-released, etc.)
+  - What are the licensing implications?
+  - Actionable next steps for the user
+
+---
+
+### Pipeline
+
+#### [MODIFY] [runner.ts](file:///f:/Osmium/src/pipeline/runner.ts)
+
+- Add **Step 9: "ai-summary"** after the existing risk assessment step
+- Performs web searches for:
+  - `"{label name}" music licensing policy`
+  - `"{label name}" copyright enforcement`
+  - `"{label name}" record label type` (major/indie)
+- Passes web search results + verdict to the summary agent
+- Attaches the `AISummary` to the final [CopyrightVerdict](file:///f:/Osmium/src/types/index.ts#178-222)
+
+---
+
+### CLI Output
+
+#### [MODIFY] [index.ts](file:///f:/Osmium/src/index.ts)
+
+- Update step count from `/8` to `/9`
+- Add a new **"AI Summary"** section at the end of `displayVerdict()` that shows:
+  - A colored banner: 🟢 "NO LICENSE REQUIRED" / 🟡 "LICENSE MAY BE REQUIRED" / 🔴 "LICENSE REQUIRED"
+  - The full AI-generated explanation
+  - Web sources consulted
+
+---
+
+### Config
+
+#### [MODIFY] [index.ts](file:///f:/Osmium/src/config/index.ts)
+
+- Add `webSearch.apiKey` and `webSearch.provider` (`"tavily"` | `"brave"`) to [AppConfig](file:///f:/Osmium/src/types/index.ts#262-280)
+- Read from `TAVILY_API_KEY` or `BRAVE_SEARCH_API_KEY` env variables
+
+#### [MODIFY] [index.ts](file:///f:/Osmium/src/types/index.ts)
+
+- Add `webSearch` config type to [AppConfig](file:///f:/Osmium/src/types/index.ts#262-280)
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Which web search API do you want to use?**
+> 1. **Tavily** (recommended) — 1,000 free credits/mo, AI-optimized, `@tavily/core` SDK
+> 2. **Brave Search** — ~1,000 free queries/mo, independent search index, `brave-search` SDK
+> 3. **SerpAPI** — 250 free searches/mo, Google result scraping, `serpapi` SDK
+> 4. **None** — skip web search, rely only on existing data sources for the AI summary
+
+> [!NOTE]
+> All options require an API key set via environment variable. The free tiers should be more than sufficient for typical usage (~2-3 searches per track checked).
+
+---
+
+## Verification Plan
+
+### Manual Verification
+1. Run `npx tsx src/index.ts check <spotify-track-url>` and verify:
+   - Step 9 ("AI Summary") appears in the progress output
+   - The final output includes the new AI Summary section with copyright/licensing verdict
+   - Web search sources are listed
+2. Run with `--verbose` to see detailed web search results
+3. Test with a well-known major-label track (should show "LICENSE REQUIRED")
+4. Test with a track from a small/indie label (should show nuanced result)
+
+### Build Verification
+- Run `npx tsc --noEmit` to verify no type errors are introduced
