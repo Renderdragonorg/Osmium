@@ -288,11 +288,20 @@ export interface AppConfig {
         clientId: string;
         clientSecret: string;
     };
+    nocodeSpotify: {
+        cloudName: string;
+        token: string;
+    };
     openrouter: {
         apiKey: string;
         model: string;
         baseURL: string;
         defaultHeaders: Record<string, string>;
+    };
+    modal?: {
+        apiKey: string;
+        model: string;
+        baseURL: string;
     };
     acoustid: {
         apiKey?: string;

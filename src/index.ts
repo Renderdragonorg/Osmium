@@ -5,7 +5,8 @@ import chalk from "chalk";
 import ora from "ora";
 import { writeFile } from "node:fs/promises";
 import { getConfig } from "./config/index.js";
-import { getSpotifyToken, getPlaylistTracks } from "./services/spotify.js";
+import { getSpotifyToken } from "./services/spotify.js";
+import { getPlaylistTracksViaNoCodeAPI } from "./services/nocode-spotify.js";
 import { PipelineRunner } from "./pipeline/runner.js";
 import { Logger } from "./utils/logger.js";
 import { parsePlaylistInput } from "./utils/validation.js";
@@ -137,9 +138,11 @@ program
             const config = getConfig();
             const playlistId = parsePlaylistInput(playlistInput);
 
-            // Fetch playlist tracks
-            const token = await getSpotifyToken(config.spotify.clientId, config.spotify.clientSecret);
-            const playlist = await getPlaylistTracks(playlistId, token);
+            const playlist = await getPlaylistTracksViaNoCodeAPI(
+                playlistId,
+                config.nocodeSpotify.cloudName,
+                config.nocodeSpotify.token
+            );
 
             spinner.stop();
             console.log(chalk.bold(`  📋 ${playlist.name}`) + chalk.gray(` by ${playlist.owner}`));

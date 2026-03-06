@@ -1,0 +1,272 @@
+[
+  {
+    "track": {
+      "name": "Spider Dance",
+      "artists": [
+        "Holder",
+        "GameChops"
+      ],
+      "isrc": "USE831543943",
+      "spotifyId": "6fKcJ3VglKLGyLRaiEyDPo",
+      "releaseDate": "2016-03-04",
+      "duration": 180004
+    },
+    "masterRights": {
+      "holder": "Unknown",
+      "label": "Unknown",
+      "confirmed": false,
+      "sources": []
+    },
+    "compositionRights": {
+      "writers": [],
+      "publishers": [],
+      "proRegistrations": []
+    },
+    "samples": {
+      "detected": false,
+      "details": [],
+      "riskLevel": "none"
+    },
+    "copyrightType": "unknown",
+    "riskLevel": "critical",
+    "confidence": 15,
+    "licensingPath": "Unable to assess - no partial verdict data provided. Spider Dance is originally from Undertale (composed by Toby Fox). If this is a GameChops release, it is likely a licensed cover/remix, but verification required. Steps needed: (1) Confirm track type via GameChops catalog, (2) Verify Toby Fox/Undertale licensing terms for covers, (3) Check if PRO registration exists, (4) Contact GameChops for sync licensing if commercial use intended. Do not proceed without obtaining complete copyright analysis and proper licenses from both original composer and remix artist.",
+    "discrepancies": [],
+    "dataSources": [],
+    "generatedAt": "2026-03-05T16:46:30.702Z",
+    "aiSummary": {
+      "isCopyrighted": "unclear",
+      "requiresLicense": "depends",
+      "masterRightsHolder": "Unknown",
+      "labelType": "unknown",
+      "labelInfo": "No identifying information was found for this track's label or rights holder, and no web search results are available to provide additional context.",
+      "licensingVerdict": "Unable to determine copyright status due to insufficient data; proceeding without clearance carries significant legal risk.",
+      "explanation": "This track could not be positively identified in any copyright database, with no PRO registrations, no confirmed master rights holder, no known writers or publishers, and no label information available. The extremely low confidence score (15%) combined with a critical risk level indicates the system could not reliably match this audio to any known copyrighted work. However, the absence of copyright data does NOT mean the track is free to use—it may simply be unregistered, under a different title, or belong to an independent artist. All audio recordings are automatically protected by copyright upon creation in most jurisdictions, regardless of registration status.",
+      "actionableSteps": [
+        "Use music identification apps like Shazam or SoundHound to attempt to identify the track and its rights holders independently.",
+        "If the track cannot be identified, consider using royalty-free or Creative Commons music from established libraries like Epidemic Sound, Artlist, or YouTube Audio Library instead.",
+        "Consult with a music licensing professional or entertainment attorney before using this track in any commercial or public project."
+      ],
+      "webSearchSources": []
+    }
+  },
+  {
+    "track": {
+      "name": "Parting",
+      "artists": [
+        "Thegur90"
+      ],
+      "isrc": "QZNWS2427694",
+      "spotifyId": "2M3ojZXMeAVKp7HngVkzbq",
+      "releaseDate": "2020-03-06",
+      "duration": 210891
+    },
+    "masterRights": {
+      "holder": "Unknown",
+      "label": "Unknown",
+      "confirmed": false,
+      "sources": []
+    },
+    "compositionRights": {
+      "writers": [],
+      "publishers": [],
+      "proRegistrations": []
+    },
+    "samples": {
+      "detected": false,
+      "details": [],
+      "riskLevel": "none"
+    },
+    "copyrightType": "unknown",
+    "riskLevel": "critical",
+    "confidence": 15,
+    "licensingPath": "Unable to determine licensing path due to insufficient data. Immediate steps required: (1) Verify ISRC QZNWS2427694 through PRO databases (ASCAP, BMI, SESAC) to identify rights holders; (2) Search copyright office records for registration; (3) Identify if Thegur90 is the original artist or a distributor/alias; (4) Determine if track is self-released or under label; (5) Investigate if composition contains samples or interpolations. Do NOT use this track until copyright ownership is established and proper clearances obtained. Unlicensed use carries significant legal liability.",
+    "discrepancies": [],
+    "dataSources": [],
+    "generatedAt": "2026-03-05T16:58:37.079Z"
+  },
+  {
+    "track": {
+      "name": "True Love",
+      "artists": [
+        "Thegur90"
+      ],
+      "isrc": "QZNWS2427695",
+      "spotifyId": "3jH8OJv6Um4ATxp9kcImj8",
+      "releaseDate": "2020-03-06",
+      "duration": 258805
+    },
+    "masterRights": {
+      "holder": "Unknown",
+      "label": "Unknown",
+      "confirmed": false,
+      "sources": []
+    },
+    "compositionRights": {
+      "writers": [],
+      "publishers": [],
+      "proRegistrations": []
+    },
+    "samples": {
+      "detected": false,
+      "details": [],
+      "riskLevel": "none"
+    },
+    "copyrightType": "unknown",
+    "riskLevel": "high",
+    "confidence": 25,
+    "licensingPath": "Insufficient data for licensing recommendation. Manual review required.",
+    "discrepancies": [
+      "Risk assessment failed: 502 \"upstream request failed\""
+    ],
+    "dataSources": [],
+    "generatedAt": "2026-03-05T17:21:18.468Z",
+    "aiSummary": {
+      "isCopyrighted": "unclear",
+      "requiresLicense": "depends",
+      "masterRightsHolder": "Unknown",
+      "labelType": "unknown",
+      "labelInfo": "No identifying information could be found for this track's label or rights holders, and no web search results were available to determine ownership or licensing policies.",
+      "licensingVerdict": "Unable to determine licensing requirements due to insufficient data. The track cannot be verified as public domain or cleared for use without further investigation.",
+      "explanation": "This track presents a significant rights identification challenge. No master rights holder, label, composition writers, or publishers could be identified, and there are no PRO registrations on file. However, the absence of this data does not mean the track is free to use—copyright protection exists automatically upon creation in most jurisdictions, regardless of registration status. The 25% confidence level and 'high' risk assessment indicate that the automated identification system could not reliably match this audio to any known work, which could mean it's an obscure independent release, an unreleased track, or a misidentified work. Without proper rights clearance, using this track carries substantial legal risk, including potential copyright claims, content ID strikes, or monetization diversion.",
+      "actionableSteps": [
+        "Use additional audio identification tools (Shazam, SoundHound, ACRCloud) or consult a music licensing professional to attempt further rights holder identification.",
+        "If the track cannot be identified after due diligence, consider it unusable and seek out royalty-free or properly cleared alternatives from established music libraries.",
+        "If you have any information about the track's origin (artist name, release year, source), conduct targeted research or contact potential rights holders directly before any commercial use."
+      ],
+      "webSearchSources": []
+    }
+  },
+  {
+    "track": {
+      "name": "Resurrections",
+      "artists": [
+        "Lena Raine"
+      ],
+      "isrc": "QZARB1852742",
+      "spotifyId": "1ugKYT4OfPyp4KFovrk4UL",
+      "releaseDate": "2018-01-25",
+      "duration": 578648
+    },
+    "masterRights": {
+      "holder": "Radical Dreamland",
+      "label": "Radical Dreamland",
+      "confirmed": true,
+      "sources": [
+        "Album P-line: 2018 Radical Dreamland"
+      ]
+    },
+    "compositionRights": {
+      "writers": [
+        {
+          "name": "Lena Raine",
+          "role": "composer",
+          "source": "inferred from artist credit and C-line consistency"
+        }
+      ],
+      "publishers": [
+        "Radical Dreamland"
+      ],
+      "proRegistrations": []
+    },
+    "samples": {
+      "detected": false,
+      "details": [],
+      "riskLevel": "none"
+    },
+    "copyrightType": "original",
+    "riskLevel": "medium",
+    "confidence": 58,
+    "licensingPath": "Contact Radical Dreamland directly for master and sync licensing. Lena Raine (composer/artist) self-publishes through this imprint. For commercial use, reach out via Bandcamp or known representative channels. No PRO registration found suggests direct licensing may be required for public performance.",
+    "discrepancies": [
+      "Spotify label field shows 'undefined' but album copyrights clearly indicate Radical Dreamland",
+      "No PRO registration found for a published soundtrack work - possible registration gap or may be registered under alternate title/work ID",
+      "No explicit writer credits available from Spotify despite clear composer attribution needed for licensing"
+    ],
+    "dataSources": [
+      "Spotify Web API",
+      "COPYRIGHT_OFFICE",
+      "ASCAP",
+      "SESAC",
+      "BMI",
+      "WhoSampled"
+    ],
+    "generatedAt": "2026-03-05T17:36:26.488Z",
+    "aiSummary": {
+      "isCopyrighted": "yes",
+      "requiresLicense": "yes",
+      "masterRightsHolder": "Radical Dreamland",
+      "labelType": "indie",
+      "labelInfo": "Radical Dreamland appears to be an independent label/publisher associated with composer Lena Raine, a prominent video game composer known for work on Celeste and Minecraft; no specific licensing portal or creator-friendly policies were found in search results.",
+      "licensingVerdict": "A license is required to use this track. Lena Raine is an established composer, and her works are protected under copyright law with master and publishing rights held by Radical Dreamland.",
+      "explanation": "This track is an original composition by Lena Raine, a well-known video game composer, with both master rights and publishing rights held by Radical Dreamland. No PRO registrations were found, which is common for video game soundtracks that may be administered outside traditional PRO systems. The 58% confidence and lack of clear licensing information in search results suggests this may be a niche catalog, but the absence of a public licensing portal does NOT mean the work is free to use. Both sync (for composition) and master use licenses would be required for any commercial or derivative use.",
+      "actionableSteps": [
+        "Contact Radical Dreamland or Lena Raine directly through official channels (Bandcamp, website, or social media) to inquire about sync licensing options.",
+        "If this track is part of a video game soundtrack, verify whether the game publisher (e.g., Matt Makes Games for Celeste, Microsoft/Mojang for Minecraft) holds additional rights that need clearance.",
+        "Consider using a music clearance service or entertainment attorney to negotiate a license if you plan to use this in a commercial project."
+      ],
+      "webSearchSources": [
+        {
+          "title": "MRSS | Music Rights Singapore | Labels",
+          "url": "https://www.mrss.com.sg/labels/",
+          "snippet": "... MUSIC LTD DRAGNET DREAM PRICE DREAMLAND DREAMVILLE RECORDS ... Official administrator of copyright licences for all commercial uses of recorded music and music"
+        },
+        {
+          "title": "Sync License Agreement Question (Between Artist and Producer)",
+          "url": "https://www.reddit.com/r/musicbusiness/comments/1o1c5a4/sync_license_agreement_question_between_artist/",
+          "snippet": "# Sync License Agreement Question (Between Artist and Producer). A question on the clearance side of getting permissions of sync from a producer…. Example: An artist buys a beat from producer, the beat license says sync can only be used for a music video and nothing more. Artist decides they want to reach out to music supervisors and get a sync on tv, while being a one stop. Artist talks to producer, producer verbally says the song is totally cool to use for sync, but the original agreement says otherwise. I am assuming music supervisors want to see this in legal writing (correct me if I’m wrong). Does anyone have experience with this scenario? Would the artist just need an updated agreement for sync from producer? If so whether you’re an artist, producer, or involved in anyway I’d very love to chat with you on your experiences and what the agreement looks like. Reddit Rules    Privacy Policy    User Agreement    Accessibility   Reddit, Inc."
+        },
+        {
+          "title": "What is Sync Licensing? - A Quick Guide for Record Label Owners",
+          "url": "https://www.youtube.com/watch?v=ada80yitm1A",
+          "snippet": "Marketing & Promotion - (How to promote your record label's new and upcoming album releases!) ...more. Other Record Labels."
+        },
+        {
+          "title": "Music can elevate visual storytelling, but it also comes with important ...",
+          "url": "https://www.instagram.com/p/DUi3Qk6DT8u/",
+          "snippet": "Music licensing for filmmakers doesn't have to be this confusing One price, lifetime sync rights, worldwide clearance—no subscriptions, no"
+        },
+        {
+          "title": "Music Search - Universal Music Publishing Group",
+          "url": "https://www.umusicpub.com/us/Digital-Music-Library/search",
+          "snippet": "Search for music in Universal Music Publishing's catalogue. Find songs for sync licensing for advertising, television, and feature films."
+        }
+      ]
+    }
+  },
+  {
+    "track": {
+      "name": "At Doom's Gate (DOOM E1M1)",
+      "artists": [
+        "Daniel Tidwell"
+      ],
+      "isrc": "USE830997204",
+      "spotifyId": "21Dy4I2NKq7HOVJ9JpMJZy",
+      "releaseDate": "2015-07-31",
+      "duration": 197842
+    },
+    "masterRights": {
+      "holder": "Unknown",
+      "label": "Unknown",
+      "confirmed": false,
+      "sources": []
+    },
+    "compositionRights": {
+      "writers": [],
+      "publishers": [],
+      "proRegistrations": []
+    },
+    "samples": {
+      "detected": false,
+      "details": [],
+      "riskLevel": "none"
+    },
+    "copyrightType": "cover",
+    "riskLevel": "high",
+    "confidence": 55,
+    "licensingPath": "This is a cover of 'At Doom's Gate' originally composed by Bobby Prince for the DOOM (1993) video game soundtrack. The original composition is owned by id Software (now Microsoft/Zenimax). To legally use this Daniel Tidwell cover recording, you would need: (1) Sync license from Microsoft/id Software for the underlying composition, (2) Permission or license from Daniel Tidwell for his specific recording/arrangement. For commercial use, contact Microsoft's licensing department and Daniel Tidwell directly. Note: Many video game soundtrack covers on YouTube operate in a gray area - formal commercial use requires proper clearance from both parties.",
+    "discrepancies": [],
+    "dataSources": [],
+    "generatedAt": "2026-03-05T17:51:58.091Z"
+  }
+]

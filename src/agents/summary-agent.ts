@@ -1,21 +1,11 @@
-import OpenAI from "openai";
+import { chatCompletion, chatCompletionJSON } from "../utils/ai-client.js";
 import type { AppConfig, CopyrightVerdict, AISummary, WebSearchSource } from "../types/index.js";
 
-/**
- * AI Summary Agent — takes the full copyright verdict and recent web search results
- * about the label/studio, and produces a final, clear, human-readable summary about
- * whether a license is required and how to obtain it.
- */
 export async function generateAISummary(
     config: AppConfig,
     verdict: CopyrightVerdict,
     webSearchResults: WebSearchSource[]
 ): Promise<AISummary> {
-    const client = new OpenAI({
-        baseURL: config.openrouter.baseURL,
-        apiKey: config.openrouter.apiKey,
-        defaultHeaders: config.openrouter.defaultHeaders,
-    });
 
     const systemPrompt = `You are an expert music licensing and copyright AI assistant. 
 Your job is to read the structured copyright data for a track, along with context from recent web searches about the label or rights holder, and provide a definitive answer on whether a license is required to use the song.
@@ -62,44 +52,14 @@ ${webSearchResults.length > 0
 Generate the JSON summary now.`;
 
     try {
-        const response = await client.chat.completions.create({
-            model: config.openrouter.model,
-            messages: [
+        const parsed = await chatCompletionJSON<Omit<AISummary, "webSearchSources">>(
+            config,
+            [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userMessage },
             ],
-        });
-
-        const content = response.choices?.[0]?.message?.content;
-        if (!content) {
-            throw new Error("No response from summary agent");
-        }
-
-        // Try to parse the response as JSON (handle markdown code blocks and random text)
-        let parsed: Omit<AISummary, "webSearchSources">;
-        try {
-            // 1. Try extracting from markdown JSON blocks
-            const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-            if (jsonMatch && jsonMatch[1]) {
-                parsed = JSON.parse(jsonMatch[1].trim());
-            } else {
-                // 2. Try looking for the first { and last }
-                const firstBrace = content.indexOf('{');
-                const lastBrace = content.lastIndexOf('}');
-
-                if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-                    parsed = JSON.parse(content.substring(firstBrace, lastBrace + 1));
-                } else {
-                    // 3. Fallback to parsing the whole thing
-                    parsed = JSON.parse(content.trim());
-                }
-            }
-        } catch (parseError) {
-            console.error("\n--- RAW AI SUMMARY RESPONSE ---");
-            console.error(content);
-            console.error("-------------------------------\n");
-            throw new Error(`Failed to parse AI summary JSON: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
-        }
+            { model: config.openrouter.model }
+        );
 
         return {
             ...parsed,

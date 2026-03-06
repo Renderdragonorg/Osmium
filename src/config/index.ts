@@ -11,6 +11,8 @@ export function validateConfig(): AppConfig {
     if (!process.env.SPOTIFY_CLIENT_ID) missing.push("SPOTIFY_CLIENT_ID");
     if (!process.env.SPOTIFY_CLIENT_SECRET) missing.push("SPOTIFY_CLIENT_SECRET");
     if (!process.env.OPENROUTER_API_KEY) missing.push("OPENROUTER_API_KEY");
+    if (!process.env.NOCODE_SPOTIFY_CLOUD_NAME) missing.push("NOCODE_SPOTIFY_CLOUD_NAME");
+    if (!process.env.NOCODE_SPOTIFY_TOKEN) missing.push("NOCODE_SPOTIFY_TOKEN");
 
     if (missing.length > 0) {
         throw new Error(
@@ -22,6 +24,10 @@ export function validateConfig(): AppConfig {
         spotify: {
             clientId: process.env.SPOTIFY_CLIENT_ID!,
             clientSecret: process.env.SPOTIFY_CLIENT_SECRET!,
+        },
+        nocodeSpotify: {
+            cloudName: process.env.NOCODE_SPOTIFY_CLOUD_NAME!,
+            token: process.env.NOCODE_SPOTIFY_TOKEN!,
         },
         openrouter: {
             apiKey: process.env.OPENROUTER_API_KEY!,
@@ -41,6 +47,15 @@ export function validateConfig(): AppConfig {
         tavily: {
             apiKey: process.env.TAVILY_API_KEY,
         },
+        ...(process.env.MODAL_API_KEY
+            ? {
+                  modal: {
+                      apiKey: process.env.MODAL_API_KEY,
+                      model: process.env.MODAL_MODEL || "zai-org/GLM-5-FP8",
+                      baseURL: "https://api.us-west-2.modal.direct/v1",
+                  },
+              }
+            : {}),
     };
 }
 

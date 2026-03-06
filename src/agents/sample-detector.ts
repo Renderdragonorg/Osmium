@@ -1,13 +1,7 @@
-import OpenAI from "openai";
+import { chatCompletionJSON } from "../utils/ai-client.js";
 import { fetchWithRetry } from "../utils/http.js";
 import type { AppConfig, SampleInfo } from "../types/index.js";
 
-/**
- * Sample Detector Agent — checks whether a track contains samples,
- * interpolations, covers, or remixes that may require additional clearance.
- *
- * Queries WhoSampled (via web scrape) and uses AI to analyze the results.
- */
 export async function detectSamples(
     config: AppConfig,
     trackName: string,
@@ -91,24 +85,15 @@ async function queryWhoSampled(
     }
 }
 
-/**
- * Use AI to assess if the track might contain samples.
- */
 async function assessSamplesWithAI(
     config: AppConfig,
     trackName: string,
     artistName: string
 ): Promise<{ samples: SampleInfo[]; riskLevel: "none" | "low" | "medium" | "high" }> {
     try {
-        const client = new OpenAI({
-            baseURL: config.openrouter.baseURL,
-            apiKey: config.openrouter.apiKey,
-            defaultHeaders: config.openrouter.defaultHeaders,
-        });
-
-        const result = await client.chat.completions.create({
-            model: config.openrouter.model,
-            messages: [
+        return await chatCompletionJSON<{ samples: SampleInfo[]; riskLevel: "none" | "low" | "medium" | "high" }>(
+            config,
+            [
                 {
                     role: "system",
                     content: `You are a music sample detection specialist. Based on the track name and artist, assess the likelihood that this track contains samples, interpolations, or is a cover/remix. Consider the artist's history and genre conventions. Respond with ONLY JSON: { "samples": [{ "originalTrack": "string", "originalArtist": "string", "sampleType": "sample|interpolation|cover|remix" }], "riskLevel": "none|low|medium|high" }. If you're uncertain, return empty samples with "low" risk.`,
@@ -118,11 +103,8 @@ async function assessSamplesWithAI(
                     content: `Track: "${trackName}" by ${artistName}. Are there known samples, interpolations, or covers?`,
                 },
             ],
-        });
-
-        const content = result.choices?.[0]?.message?.content ?? "";
-        const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, content];
-        return JSON.parse(jsonMatch[1]!.trim());
+            { model: config.openrouter.model }
+        );
     } catch {
         return { samples: [], riskLevel: "none" };
     }

@@ -1,13 +1,6 @@
-import OpenAI from "openai";
+import { chatCompletionJSON } from "../utils/ai-client.js";
 import type { AppConfig, CopyrightVerdict, ParsedCredits, RegistryResult } from "../types/index.js";
 
-/**
- * Orchestrator Agent — the main AI controller for the copyright analysis pipeline.
- *
- * Receives all collected data from the pipeline (track metadata, credits, registry
- * results, fingerprint results, etc.) and synthesizes a copyright verdict using
- * OpenRouter via the OpenAI SDK.
- */
 export async function runOrchestrator(
     config: AppConfig,
     context: {
@@ -24,11 +17,6 @@ export async function runOrchestrator(
         discrepancies?: string[];
     }
 ): Promise<Partial<CopyrightVerdict>> {
-    const client = new OpenAI({
-        baseURL: config.openrouter.baseURL,
-        apiKey: config.openrouter.apiKey,
-        defaultHeaders: config.openrouter.defaultHeaders,
-    });
 
     const systemPrompt = `You are a music copyright analysis agent. You receive structured data about a track from multiple sources (Spotify, PRO registries, MusicBrainz, audio fingerprinting) and must synthesize a comprehensive copyright verdict.
 
@@ -77,26 +65,16 @@ ${context.registryResults.length > 0 ? JSON.stringify(context.registryResults, n
 **Known Discrepancies:** ${context.discrepancies?.join("; ") ?? "None identified yet"}`;
 
     try {
-        const result = await client.chat.completions.create({
-            model: config.openrouter.model,
-            messages: [
+        const parsed = await chatCompletionJSON<Partial<CopyrightVerdict>>(
+            config,
+            [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userMessage },
             ],
-        });
+            { model: config.openrouter.model }
+        );
 
-        const content = result.choices?.[0]?.message?.content;
-        if (!content) {
-            throw new Error("No response from orchestrator agent");
-        }
-
-        // Extract JSON from the response (handle markdown code blocks)
-        const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || [
-            null,
-            content,
-        ];
-        const parsed = JSON.parse(jsonMatch[1]!.trim());
-        return parsed as Partial<CopyrightVerdict>;
+        return parsed;
     } catch (error) {
         throw new Error(
             `Orchestrator agent failed: ${error instanceof Error ? error.message : String(error)}`

@@ -1,12 +1,6 @@
-import OpenAI from "openai";
+import { chatCompletionJSON } from "../utils/ai-client.js";
 import type { AppConfig, CopyrightVerdict } from "../types/index.js";
 
-/**
- * Risk Assessor Agent — takes the synthesized rights data and produces
- * the final copyright verdict with risk classification and licensing path.
- *
- * This is the final AI step in the pipeline.
- */
 export async function assessRisk(
     config: AppConfig,
     partialVerdict: Partial<CopyrightVerdict>,
@@ -19,11 +13,6 @@ export async function assessRisk(
         duration: number;
     }
 ): Promise<CopyrightVerdict> {
-    const client = new OpenAI({
-        baseURL: config.openrouter.baseURL,
-        apiKey: config.openrouter.apiKey,
-        defaultHeaders: config.openrouter.defaultHeaders,
-    });
 
     const systemPrompt = `You are a music copyright risk assessor. Given partial copyright analysis data, you must:
 1. Verify the risk level is appropriate for the identified copyright type
@@ -47,25 +36,22 @@ Respond with ONLY JSON containing adjustments:
 }`;
 
     try {
-        const result = await client.chat.completions.create({
-            model: config.openrouter.model,
-            messages: [
+        const assessment = await chatCompletionJSON<{
+            copyrightType: CopyrightVerdict["copyrightType"];
+            riskLevel: CopyrightVerdict["riskLevel"];
+            confidence: number;
+            licensingPath: string;
+        }>(
+            config,
+            [
                 { role: "system", content: systemPrompt },
                 {
                     role: "user",
                     content: `Assess the risk and finalize the verdict for:\n\nTrack: "${trackInfo.name}" by ${trackInfo.artists.join(", ")}\nISRC: ${trackInfo.isrc}\n\nPartial Verdict:\n${JSON.stringify(partialVerdict, null, 2)}`,
                 },
             ],
-        });
-
-        const content = result.choices?.[0]?.message?.content ?? "";
-        const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, content];
-        const assessment = JSON.parse(jsonMatch[1]!.trim()) as {
-            copyrightType: CopyrightVerdict["copyrightType"];
-            riskLevel: CopyrightVerdict["riskLevel"];
-            confidence: number;
-            licensingPath: string;
-        };
+            { model: config.openrouter.model }
+        );
 
         // Merge assessment into final verdict
         return {

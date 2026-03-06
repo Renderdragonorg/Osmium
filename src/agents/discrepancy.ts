@@ -1,13 +1,6 @@
-import OpenAI from "openai";
+import { chatCompletionJSON } from "../utils/ai-client.js";
 import type { AppConfig, RegistryResult, ParsedCredits } from "../types/index.js";
 
-/**
- * Discrepancy Resolver Agent — detects and attempts to resolve conflicts
- * between data from different sources.
- *
- * Compares Spotify credits, PRO registrations, MusicBrainz data, and
- * fingerprint results for inconsistencies.
- */
 export async function resolveDiscrepancies(
     config: AppConfig,
     data: {
@@ -82,17 +75,10 @@ export async function resolveDiscrepancies(
         };
     }
 
-    // Use AI to attempt resolution for detected conflicts
     try {
-        const client = new OpenAI({
-            baseURL: config.openrouter.baseURL,
-            apiKey: config.openrouter.apiKey,
-            defaultHeaders: config.openrouter.defaultHeaders,
-        });
-
-        const result = await client.chat.completions.create({
-            model: config.openrouter.model,
-            messages: [
+        const parsed = await chatCompletionJSON<{ resolution: string; confidence: number }>(
+            config,
+            [
                 {
                     role: "system",
                     content: `You are a music copyright discrepancy resolver. Given conflicts between different data sources, explain likely reasons and suggest which source to trust. Be concise. Respond with JSON: { "resolution": "string", "confidence": 0-100 }`,
@@ -102,18 +88,8 @@ export async function resolveDiscrepancies(
                     content: `Track: "${data.trackName}"\n\nDiscrepancies found:\n${discrepancies.map((d, i) => `${i + 1}. ${d}`).join("\n")}\n\nFull context:\n${JSON.stringify(data, null, 2)}`,
                 },
             ],
-        });
-
-        const content = result.choices?.[0]?.message?.content ?? "";
-        const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || [
-            null,
-            content,
-        ];
-
-        const parsed = JSON.parse(jsonMatch[1]!.trim()) as {
-            resolution: string;
-            confidence: number;
-        };
+            { model: config.openrouter.model }
+        );
 
         return {
             discrepancies,

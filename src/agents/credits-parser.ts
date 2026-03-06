@@ -1,21 +1,12 @@
-import OpenAI from "openai";
+import { chatCompletionJSON } from "../utils/ai-client.js";
 import type { AppConfig, ParsedCredits } from "../types/index.js";
 
-/**
- * Credits Parser Agent — AI-powered extraction of structured credits
- * from raw Spotify credits data.
- *
- * Takes raw HTML/JSON from the Spotify credits page scrape and uses AI
- * to extract writers, producers, publishers, and PRO affiliations into
- * structured, normalized data.
- */
 export async function parseCreditsWithAI(
     config: AppConfig,
     rawCredits: unknown,
     trackName: string,
     artistNames: string[]
 ): Promise<ParsedCredits> {
-    // If credits are null or empty, return empty structure
     if (!rawCredits) {
         return {
             writers: [],
@@ -25,12 +16,6 @@ export async function parseCreditsWithAI(
             rawCredits: null,
         };
     }
-
-    const client = new OpenAI({
-        baseURL: config.openrouter.baseURL,
-        apiKey: config.openrouter.apiKey,
-        defaultHeaders: config.openrouter.defaultHeaders,
-    });
 
     const systemPrompt = `You are a music credits parsing agent. You receive raw credit data from Spotify (either JSON or HTML fragments) and must extract structured entities.
 
@@ -54,30 +39,14 @@ Respond with ONLY valid JSON:
 ${typeof rawCredits === "string" ? rawCredits : JSON.stringify(rawCredits, null, 2)}`;
 
     try {
-        const result = await client.chat.completions.create({
-            model: config.openrouter.model,
-            messages: [
+        const parsed = await chatCompletionJSON<ParsedCredits>(
+            config,
+            [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userMessage },
             ],
-        });
-
-        const content = result.choices?.[0]?.message?.content;
-        if (!content) {
-            return {
-                writers: [],
-                producers: [],
-                publishers: [],
-                proAffiliations: [],
-                rawCredits,
-            };
-        }
-
-        const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || [
-            null,
-            content,
-        ];
-        const parsed = JSON.parse(jsonMatch[1]!.trim()) as ParsedCredits;
+            { model: config.openrouter.model }
+        );
 
         return {
             ...parsed,
