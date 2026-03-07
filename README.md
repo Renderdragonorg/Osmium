@@ -1,6 +1,6 @@
 # Osmium CLI 💿
 
-**Osmium** is an AI-powered music copyright checker. It orchestrates a sophisticated multi-agent AI pipeline to resolve track ownership by consulting Spotify, PRO registries (ASCAP, BMI, SESAC, Copyright Office), audio fingerprinting (AcoustID), metadata databases (MusicBrainz, Discogs), and sample databases. 
+**Osmium** is a music copyright checker By Renderdragon. It orchestrates a sophisticated multi-agent AI pipeline to resolve track ownership by consulting Spotify, PRO registries (ASCAP, BMI, SESAC, Copyright Office), audio fingerprinting (AcoustID), metadata databases (MusicBrainz, Discogs), and sample databases. 
 
 Finally, it synthesizes all this data using an LLM (via OpenRouter) to provide a definitive, human-readable answer on whether a specific track requires a license and the steps to obtain it.
 

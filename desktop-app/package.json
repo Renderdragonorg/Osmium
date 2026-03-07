@@ -1,7 +1,7 @@
 {
   "name": "osmium-desktop",
   "version": "1.0.0",
-  "description": "Osmium Desktop - AI-powered music copyright checker",
+  "description": "Osmium Desktop - music copyright checker By Renderdragon",
   "main": "./out/main/index.js",
   "author": "Osmium",
   "license": "MIT",

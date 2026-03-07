@@ -10314,3 +10314,21 @@ electron.ipcMain.handle("check:run", async (_event, trackInput) => {
     };
   }
 });
+electron.ipcMain.handle("spotify:search", async (_event, query) => {
+  try {
+    const osmiumPath = path$1.join(__dirname$1, "../../..");
+    const configUrl = url.pathToFileURL(path$1.join(osmiumPath, "dist/config/index.js")).href;
+    const spotifyUrl = url.pathToFileURL(path$1.join(osmiumPath, "dist/services/spotify.js")).href;
+    const { getConfig } = await import(configUrl);
+    const { getSpotifyToken, searchTracks } = await import(spotifyUrl);
+    const config = getConfig();
+    const token = await getSpotifyToken(config.spotify.clientId, config.spotify.clientSecret);
+    const results = await searchTracks(query, token);
+    return { success: true, results };
+  } catch (error2) {
+    return {
+      success: false,
+      error: error2 instanceof Error ? error2.message : String(error2)
+    };
+  }
+});

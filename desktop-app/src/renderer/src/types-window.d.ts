@@ -1,4 +1,4 @@
-import type { PipelineEvent, CopyrightVerdict } from './types'
+import type { PipelineEvent, CopyrightVerdict, SpotifySearchResult } from './types'
 
 declare global {
   interface Window {
@@ -20,8 +20,11 @@ declare global {
         run: (trackInput: string) => Promise<{ success: boolean; verdict?: CopyrightVerdict; error?: string }>
         onProgress: (callback: (event: PipelineEvent) => void) => () => void
       }
+      spotify: {
+        search: (query: string) => Promise<{ success: boolean; results?: SpotifySearchResult[]; error?: string }>
+      }
     }
   }
 }
 
-export {}
+export { }

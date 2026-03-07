@@ -14,7 +14,7 @@ function getIcon(): nativeImage {
     join(__dirname, '../../../public/icon.png'),
     join(process.resourcesPath, 'public/icon.png')
   ]
-  
+
   for (const iconPath of paths) {
     if (existsSync(iconPath)) {
       try {
@@ -27,7 +27,7 @@ function getIcon(): nativeImage {
       }
     }
   }
-  
+
   return nativeImage.createFromDataURL(OSMIUM_ICON)
 }
 
@@ -63,7 +63,7 @@ let mainWindow: BrowserWindow | null = null
 
 async function createWindow() {
   const icon = getIcon()
-  
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -127,27 +127,50 @@ ipcMain.handle('check:run', async (_event, trackInput: string) => {
     const osmiumPath = join(__dirname, '../../..')
     const runnerUrl = pathToFileURL(join(osmiumPath, 'dist/pipeline/runner.js')).href
     const configUrl = pathToFileURL(join(osmiumPath, 'dist/config/index.js')).href
-    
+
     const { PipelineRunner } = await import(runnerUrl)
     const { getConfig } = await import(configUrl)
-    
+
     const config = getConfig()
     const pipeline = new PipelineRunner(config)
-    
+
     const sendProgress = (event: PipelineEvent) => {
       mainWindow?.webContents.send('check:progress', event)
     }
-    
+
     pipeline.on('progress', sendProgress)
-    
+
     const verdict = await pipeline.run(trackInput, { verbose: false })
     const checks = store.get('checks') || []
     store.set('checks', [verdict, ...checks].slice(0, 50))
     return { success: true, verdict }
   } catch (error) {
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : String(error) 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
     }
   }
 })
+
+ipcMain.handle('spotify:search', async (_event, query: string) => {
+  try {
+    const osmiumPath = join(__dirname, '../../..')
+    const configUrl = pathToFileURL(join(osmiumPath, 'dist/config/index.js')).href
+    const spotifyUrl = pathToFileURL(join(osmiumPath, 'dist/services/spotify.js')).href
+
+    const { getConfig } = await import(configUrl)
+    const { getSpotifyToken, searchTracks } = await import(spotifyUrl)
+
+    const config = getConfig()
+    const token = await getSpotifyToken(config.spotify.clientId, config.spotify.clientSecret)
+    const results = await searchTracks(query, token)
+
+    return { success: true, results }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    }
+  }
+})
+

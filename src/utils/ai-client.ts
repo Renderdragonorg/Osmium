@@ -66,16 +66,16 @@ export async function chatCompletion(
         if (isRateLimitError(error)) {
             console.warn("OpenRouter rate limited:", error instanceof Error ? error.message : String(error));
             
-            if (config.modal) {
-                console.warn("Falling back to Modal...");
+            if (config.groq) {
+                console.warn("Falling back to Groq...");
                 try {
-                    const modalClient = new OpenAI({
-                        baseURL: config.modal.baseURL,
-                        apiKey: config.modal.apiKey,
+                    const groqClient = new OpenAI({
+                        baseURL: config.groq.baseURL,
+                        apiKey: config.groq.apiKey,
                     });
 
-                    const result = await modalClient.chat.completions.create({
-                        model: config.modal.model,
+                    const result = await groqClient.chat.completions.create({
+                        model: config.groq.model,
                         messages,
                         max_tokens: options.maxTokens,
                         temperature: options.temperature,
@@ -83,12 +83,12 @@ export async function chatCompletion(
 
                     const content = result.choices?.[0]?.message?.content;
                     if (!content) {
-                        throw new Error("No response content from Modal");
+                        throw new Error("No response content from Groq");
                     }
                     return content;
-                } catch (modalError) {
-                    console.error("Modal fallback also failed:", modalError instanceof Error ? modalError.message : String(modalError));
-                    throw modalError;
+                } catch (groqError) {
+                    console.error("Groq fallback also failed:", groqError instanceof Error ? groqError.message : String(groqError));
+                    throw groqError;
                 }
             }
         }

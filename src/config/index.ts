@@ -47,12 +47,12 @@ export function validateConfig(): AppConfig {
         tavily: {
             apiKey: process.env.TAVILY_API_KEY,
         },
-        ...(process.env.MODAL_API_KEY
+        ...(process.env.GROQ_API_KEY
             ? {
-                  modal: {
-                      apiKey: process.env.MODAL_API_KEY,
-                      model: process.env.MODAL_MODEL || "zai-org/GLM-5-FP8",
-                      baseURL: "https://api.us-west-2.modal.direct/v1",
+                  groq: {
+                      apiKey: process.env.GROQ_API_KEY,
+                      model: process.env.GROQ_MODEL || "qwen/qwen3-32b",
+                      baseURL: "https://api.groq.com/openai/v1",
                   },
               }
             : {}),

@@ -21,5 +21,8 @@ electron.contextBridge.exposeInMainWorld("osmium", {
       electron.ipcRenderer.on("check:progress", handler);
       return () => electron.ipcRenderer.removeListener("check:progress", handler);
     }
+  },
+  spotify: {
+    search: (query) => electron.ipcRenderer.invoke("spotify:search", query)
   }
 });

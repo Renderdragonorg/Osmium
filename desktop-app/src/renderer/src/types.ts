@@ -60,3 +60,11 @@ export interface CheckSession {
   error?: string
   startedAt?: string
 }
+
+export interface SpotifySearchResult {
+  id: string
+  name: string
+  artists: string[]
+  album: string
+  duration_ms: number
+}

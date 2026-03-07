@@ -21,5 +21,8 @@ contextBridge.exposeInMainWorld('osmium', {
       ipcRenderer.on('check:progress', handler)
       return () => ipcRenderer.removeListener('check:progress', handler)
     }
+  },
+  spotify: {
+    search: (query: string) => ipcRenderer.invoke('spotify:search', query)
   }
 })

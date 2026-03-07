@@ -1,7 +1,7 @@
 {
   "name": "osmium-cli",
   "version": "1.0.0",
-  "description": "AI-powered music copyright checker CLI — resolves track ownership via Spotify, PRO registries, audio fingerprinting, and multi-agent reasoning",
+  "description": "music copyright checker By Renderdragon CLI — resolves track ownership via Spotify, PRO registries, audio fingerprinting, and multi-agent reasoning",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -23,6 +23,7 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "@inquirer/prompts": "^8.3.0",
     "@openrouter/sdk": "^0.9.11",
     "@tavily/core": "^0.7.2",
     "chalk": "^5.4.1",

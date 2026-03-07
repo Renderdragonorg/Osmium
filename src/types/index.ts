@@ -299,7 +299,7 @@ export interface AppConfig {
         baseURL: string;
         defaultHeaders: Record<string, string>;
     };
-    modal?: {
+    groq?: {
         apiKey: string;
         model: string;
         baseURL: string;

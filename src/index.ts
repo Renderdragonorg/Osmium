@@ -5,7 +5,7 @@ import chalk from "chalk";
 import ora from "ora";
 import { writeFile } from "node:fs/promises";
 import { getConfig } from "./config/index.js";
-import { getSpotifyToken } from "./services/spotify.js";
+import { getSpotifyToken, searchTracks } from "./services/spotify.js";
 import { getPlaylistTracksViaNoCodeAPI } from "./services/nocode-spotify.js";
 import { PipelineRunner } from "./pipeline/runner.js";
 import { Logger } from "./utils/logger.js";
@@ -27,6 +27,92 @@ program
     )
     .version(VERSION);
 
+/**
+ * Shared check logic used by both `check` and `search` commands.
+ */
+async function runCheck(track: string, options: { output?: string; verbose?: boolean }) {
+    const logger = new Logger(options.verbose);
+
+    // Header
+    console.log();
+    console.log(
+        chalk.bold(chalk.hex("#e8ff47")("  ◆ OSMIUM")) +
+        chalk.gray(" · Music Copyright Checker v" + VERSION)
+    );
+    console.log(chalk.dim("  ─".repeat(25)));
+    console.log();
+
+    const spinner = ora({
+        text: "Initializing pipeline...",
+        color: "yellow",
+    }).start();
+
+    try {
+        const config = getConfig();
+        const pipeline = new PipelineRunner(config);
+
+        // Listen for progress events
+        pipeline.on("progress", (event: PipelineEvent) => {
+            if (event.status === "in_progress") {
+                spinner.text = `[${event.step}/9] ${event.message ?? event.name}`;
+            } else if (event.status === "completed") {
+                spinner.stop();
+                logger.step(event.step, formatStepName(event.name), "completed");
+                if (event.message) {
+                    logger.debug(event.message);
+                }
+                spinner.start(`[${event.step + 1}/9] Processing...`);
+            } else if (event.status === "failed") {
+                spinner.stop();
+                logger.step(event.step, formatStepName(event.name), "failed");
+                if (event.error) {
+                    logger.debug(`Error: ${event.error}`);
+                }
+                spinner.start(`[${event.step + 1}/9] Continuing...`);
+            } else if (event.status === "skipped") {
+                spinner.stop();
+                logger.step(event.step, formatStepName(event.name), "skipped");
+                if (event.message) {
+                    logger.debug(event.message);
+                }
+                spinner.start(`[${event.step + 1}/9] Processing...`);
+            }
+        });
+
+        // Run the pipeline
+        const verdict = await pipeline.run(track, {
+            verbose: options.verbose ?? false,
+            outputFile: options.output,
+        });
+
+        spinner.stop();
+        console.log();
+
+        // Display verdict
+        displayVerdict(verdict, logger);
+
+        // Save to history
+        await saveToHistory(verdict);
+
+        // Write to file if requested
+        if (options.output) {
+            await writeFile(
+                options.output,
+                JSON.stringify(verdict, null, 2),
+                "utf-8"
+            );
+            console.log();
+            logger.success(`Verdict written to ${chalk.bold(options.output)}`);
+        }
+    } catch (error) {
+        spinner.stop();
+        logger.error(
+            error instanceof Error ? error.message : String(error)
+        );
+        process.exit(1);
+    }
+}
+
 program
     .command("check")
     .description("Check copyright ownership for a Spotify track")
@@ -34,86 +120,7 @@ program
     .option("-o, --output <file>", "Write verdict JSON to file")
     .option("-v, --verbose", "Enable verbose output with detailed progress", false)
     .action(async (track: string, options: { output?: string; verbose?: boolean }) => {
-        const logger = new Logger(options.verbose);
-
-        // Header
-        console.log();
-        console.log(
-            chalk.bold(chalk.hex("#e8ff47")("  ◆ OSMIUM")) +
-            chalk.gray(" · Music Copyright Checker v" + VERSION)
-        );
-        console.log(chalk.dim("  ─".repeat(25)));
-        console.log();
-
-        const spinner = ora({
-            text: "Initializing pipeline...",
-            color: "yellow",
-        }).start();
-
-        try {
-            const config = getConfig();
-            const pipeline = new PipelineRunner(config);
-
-            // Listen for progress events
-            pipeline.on("progress", (event: PipelineEvent) => {
-                if (event.status === "in_progress") {
-                    spinner.text = `[${event.step}/9] ${event.message ?? event.name}`;
-                } else if (event.status === "completed") {
-                    spinner.stop();
-                    logger.step(event.step, formatStepName(event.name), "completed");
-                    if (event.message) {
-                        logger.debug(event.message);
-                    }
-                    spinner.start(`[${event.step + 1}/9] Processing...`);
-                } else if (event.status === "failed") {
-                    spinner.stop();
-                    logger.step(event.step, formatStepName(event.name), "failed");
-                    if (event.error) {
-                        logger.debug(`Error: ${event.error}`);
-                    }
-                    spinner.start(`[${event.step + 1}/9] Continuing...`);
-                } else if (event.status === "skipped") {
-                    spinner.stop();
-                    logger.step(event.step, formatStepName(event.name), "skipped");
-                    if (event.message) {
-                        logger.debug(event.message);
-                    }
-                    spinner.start(`[${event.step + 1}/9] Processing...`);
-                }
-            });
-
-            // Run the pipeline
-            const verdict = await pipeline.run(track, {
-                verbose: options.verbose ?? false,
-                outputFile: options.output,
-            });
-
-            spinner.stop();
-            console.log();
-
-            // Display verdict
-            displayVerdict(verdict, logger);
-
-            // Save to history
-            await saveToHistory(verdict);
-
-            // Write to file if requested
-            if (options.output) {
-                await writeFile(
-                    options.output,
-                    JSON.stringify(verdict, null, 2),
-                    "utf-8"
-                );
-                console.log();
-                logger.success(`Verdict written to ${chalk.bold(options.output)}`);
-            }
-        } catch (error) {
-            spinner.stop();
-            logger.error(
-                error instanceof Error ? error.message : String(error)
-            );
-            process.exit(1);
-        }
+        await runCheck(track, options);
     });
 
 program
@@ -268,7 +275,7 @@ function displayVerdict(verdict: CopyrightVerdict, logger: Logger): void {
     console.log();
 
     const spotifyUrl = `https://open.spotify.com/track/${verdict.track.spotifyId}`;
-    
+
     const rows: Array<[string, string, string]> = [
         [
             "Track",
@@ -376,13 +383,13 @@ function displayVerdict(verdict: CopyrightVerdict, logger: Logger): void {
         console.log(`  ${bannerText}`);
         console.log();
         console.log(`  ${chalk.white(summary.explanation)}`);
-        
+
         if (summary.licensingUrl) {
             console.log();
             console.log(chalk.gray("  Licensing URL:"));
             console.log(`  ${chalk.cyan.underline(summary.licensingUrl)}`);
         }
-        
+
         console.log();
         console.log(chalk.gray("  Actionable Steps:"));
         for (const step of summary.actionableSteps) {
@@ -506,6 +513,72 @@ program
         console.log();
         console.log(chalk.dim(`  Store: ${getStorePathForDisplay()}`));
         console.log();
+    });
+
+program
+    .command("search")
+    .description("Search for a track by name and interactively optionally check copyright")
+    .argument("[query]", "Search query (e.g., 'blinding lights the weeknd')")
+    .option("-o, --output <file>", "Write verdict JSON to file")
+    .option("-v, --verbose", "Enable verbose output with detailed progress", false)
+    .action(async (queryParam?: string, options?: { output?: string; verbose?: boolean }) => {
+        const logger = new Logger(options?.verbose);
+
+        let query = queryParam;
+        if (!query) {
+            const inquirer = await import("@inquirer/prompts");
+            query = await inquirer.input({
+                message: "Enter search query:",
+                theme: {
+                    prefix: chalk.hex("#e8ff47")("?"),
+                }
+            });
+        }
+
+        if (!query) {
+            logger.error("No search query provided.");
+            process.exit(1);
+        }
+
+        const spinner = ora({ text: "Searching Spotify...", color: "yellow" }).start();
+
+        try {
+            const config = getConfig();
+            const token = await getSpotifyToken(config.spotify.clientId, config.spotify.clientSecret);
+            const results = await searchTracks(query, token);
+            spinner.stop();
+
+            if (results.length === 0) {
+                logger.error("No tracks found matching your query.");
+                process.exit(1);
+            }
+
+            const inquirer = await import("@inquirer/prompts");
+            const selectedTrackId = await inquirer.select({
+                message: "Select a track to check:",
+                choices: results.map((t) => ({
+                    name: `${t.name} — ${t.artists.join(", ")} (${t.album})`,
+                    value: t.id,
+                })),
+                pageSize: 15,
+                theme: {
+                    prefix: chalk.hex("#e8ff47")("?"),
+                    style: {
+                        highlight: (text: string) => chalk.hex("#e8ff47")(text),
+                    }
+                }
+            });
+
+            const trackUrl = `https://open.spotify.com/track/${selectedTrackId}`;
+            await runCheck(trackUrl, {
+                output: options?.output,
+                verbose: options?.verbose ?? false,
+            });
+        } catch (error) {
+            spinner.stop();
+            logger.error(error instanceof Error ? error.message : String(error));
+            process.exit(1);
+        }
     });
 
 program.parse();
