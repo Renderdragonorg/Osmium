@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "description": "Osmium Desktop - music copyright checker By Renderdragon",
   "main": "./out/main/index.js",
-  "author": "contact@renderdragon.org",
+  "author": {
+    "name": "Renderdragon",
+    "email": "contact@renderdragon.org"
+  },
+  "homepage": "https://github.com/Renderdragonorg/Osmium",
   "license": "MIT",
   "appId": "com.osmium.desktop",
   "scripts": {
@@ -54,6 +58,7 @@
     },
     "linux": {
       "icon": "public/icon1.png",
+      "maintainer": "contact@renderdragon.org",
       "target": [
         "AppImage",
         "deb"
