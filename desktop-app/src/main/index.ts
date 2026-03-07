@@ -6,9 +6,60 @@ import { existsSync } from 'fs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-const OSMIUM_ICON = 'data:image/png;base64,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'
+/* ──────────────────────────────────────────────
+ * Compile-time env injection (populated by electron-vite define)
+ * In dev mode these will be empty strings and dotenv handles it.
+ * In packaged builds these contain the real values from CI secrets.
+ * ────────────────────────────────────────────── */
+declare const __ENV_SPOTIFY_CLIENT_ID__: string
+declare const __ENV_SPOTIFY_CLIENT_SECRET__: string
+declare const __ENV_OPENROUTER_API_KEY__: string
+declare const __ENV_OPENROUTER_MODEL__: string
+declare const __ENV_NOCODE_SPOTIFY_CLOUD_NAME__: string
+declare const __ENV_NOCODE_SPOTIFY_TOKEN__: string
+declare const __ENV_TAVILY_API_KEY__: string
+declare const __ENV_ACOUSTID_API_KEY__: string
+declare const __ENV_DISCOGS_TOKEN__: string
+declare const __ENV_GROQ_API_KEY__: string
+declare const __ENV_GROQ_MODEL__: string
 
-function getIcon(): nativeImage {
+function injectEnv() {
+  const vars: Record<string, string> = {
+    SPOTIFY_CLIENT_ID: __ENV_SPOTIFY_CLIENT_ID__,
+    SPOTIFY_CLIENT_SECRET: __ENV_SPOTIFY_CLIENT_SECRET__,
+    OPENROUTER_API_KEY: __ENV_OPENROUTER_API_KEY__,
+    OPENROUTER_MODEL: __ENV_OPENROUTER_MODEL__,
+    NOCODE_SPOTIFY_CLOUD_NAME: __ENV_NOCODE_SPOTIFY_CLOUD_NAME__,
+    NOCODE_SPOTIFY_TOKEN: __ENV_NOCODE_SPOTIFY_TOKEN__,
+    TAVILY_API_KEY: __ENV_TAVILY_API_KEY__,
+    ACOUSTID_API_KEY: __ENV_ACOUSTID_API_KEY__,
+    DISCOGS_TOKEN: __ENV_DISCOGS_TOKEN__,
+    GROQ_API_KEY: __ENV_GROQ_API_KEY__,
+    GROQ_MODEL: __ENV_GROQ_MODEL__,
+  }
+  for (const [key, value] of Object.entries(vars)) {
+    if (value && !process.env[key]) {
+      process.env[key] = value
+    }
+  }
+}
+
+injectEnv()
+
+/* ──────────────────────────────────────────────
+ * Path resolution: in dev mode resolve CLI from parent dir,
+ * in packaged mode resolve from extraResources/cli-dist
+ * ────────────────────────────────────────────── */
+function getCliDistPath(): string {
+  if (app.isPackaged) {
+    return join(process.resourcesPath, 'cli-dist')
+  }
+  return join(__dirname, '../../..')
+}
+
+const OSMIUM_ICON = 'data:image/png;base64,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'
+
+function getIcon(): Electron.NativeImage {
   const paths = [
     join(__dirname, '../../public/icon.png'),
     join(__dirname, '../../../public/icon.png'),
@@ -124,9 +175,9 @@ ipcMain.handle('store:get-path', () => store.path)
 
 ipcMain.handle('check:run', async (_event, trackInput: string) => {
   try {
-    const osmiumPath = join(__dirname, '../../..')
-    const runnerUrl = pathToFileURL(join(osmiumPath, 'dist/pipeline/runner.js')).href
-    const configUrl = pathToFileURL(join(osmiumPath, 'dist/config/index.js')).href
+    const cliDist = getCliDistPath()
+    const runnerUrl = pathToFileURL(join(cliDist, 'dist/pipeline/runner.js')).href
+    const configUrl = pathToFileURL(join(cliDist, 'dist/config/index.js')).href
 
     const { PipelineRunner } = await import(runnerUrl)
     const { getConfig } = await import(configUrl)
@@ -154,9 +205,9 @@ ipcMain.handle('check:run', async (_event, trackInput: string) => {
 
 ipcMain.handle('spotify:search', async (_event, query: string) => {
   try {
-    const osmiumPath = join(__dirname, '../../..')
-    const configUrl = pathToFileURL(join(osmiumPath, 'dist/config/index.js')).href
-    const spotifyUrl = pathToFileURL(join(osmiumPath, 'dist/services/spotify.js')).href
+    const cliDist = getCliDistPath()
+    const configUrl = pathToFileURL(join(cliDist, 'dist/config/index.js')).href
+    const spotifyUrl = pathToFileURL(join(cliDist, 'dist/services/spotify.js')).href
 
     const { getConfig } = await import(configUrl)
     const { getSpotifyToken, searchTracks } = await import(spotifyUrl)
@@ -173,4 +224,3 @@ ipcMain.handle('spotify:search', async (_event, query: string) => {
     }
   }
 })
-

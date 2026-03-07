@@ -29,6 +29,14 @@
       {
         "from": "public",
         "to": "public"
+      },
+      {
+        "from": "../dist",
+        "to": "cli-dist/dist"
+      },
+      {
+        "from": "../node_modules",
+        "to": "cli-dist/node_modules"
       }
     ],
     "win": {
