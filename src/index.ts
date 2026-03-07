@@ -4,7 +4,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
 import { writeFile } from "node:fs/promises";
-import { getConfig } from "./config/index.js";
+import { getConfigAsync } from "./config/index.js";
 import { getSpotifyToken, searchTracks } from "./services/spotify.js";
 import { getPlaylistTracksViaNoCodeAPI } from "./services/nocode-spotify.js";
 import { PipelineRunner } from "./pipeline/runner.js";
@@ -48,7 +48,7 @@ async function runCheck(track: string, options: { output?: string; verbose?: boo
     }).start();
 
     try {
-        const config = getConfig();
+        const config = await getConfigAsync();
         const pipeline = new PipelineRunner(config);
 
         // Listen for progress events
@@ -146,7 +146,7 @@ program
         const spinner = ora({ text: "Loading playlist...", color: "yellow" }).start();
 
         try {
-            const config = getConfig();
+            const config = await getConfigAsync();
             const playlistId = parsePlaylistInput(playlistInput);
 
             const playlist = await getPlaylistTracksViaNoCodeAPI(
@@ -543,7 +543,7 @@ program
         const spinner = ora({ text: "Searching Spotify...", color: "yellow" }).start();
 
         try {
-            const config = getConfig();
+            const config = await getConfigAsync();
             const token = await getSpotifyToken(config.spotify.clientId, config.spotify.clientSecret);
             const results = await searchTracks(query, token);
             spinner.stop();

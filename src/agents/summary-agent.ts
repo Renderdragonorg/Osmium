@@ -63,8 +63,22 @@ Generate the JSON summary now.`;
             { model: config.openrouter.model }
         );
 
+        let licensingUrl: string | null = null;
+        if (parsed.licensingUrl) {
+            try {
+                const trimmed = parsed.licensingUrl.trim();
+                const url = new URL(trimmed);
+                if (url.protocol === 'https:') {
+                    licensingUrl = trimmed;
+                }
+            } catch {
+                // Invalid URL, keep as null
+            }
+        }
+
         return {
             ...parsed,
+            licensingUrl: licensingUrl ?? undefined,
             webSearchSources: webSearchResults,
         };
     } catch (error) {

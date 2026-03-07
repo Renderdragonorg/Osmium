@@ -10,3 +10,4 @@ desktop-app/out/
 desktop-app/.env
 results.json
 tmp/
+.env.local

@@ -8,39 +8,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 
 /* ──────────────────────────────────────────────
  * Compile-time env injection (populated by electron-vite define)
- * In dev mode these will be empty strings and dotenv handles it.
- * In packaged builds these contain the real values from CI secrets.
+ * CONVEX_URL is safe to ship - API keys are fetched from Convex securely.
  * ────────────────────────────────────────────── */
-declare const __ENV_SPOTIFY_CLIENT_ID__: string
-declare const __ENV_SPOTIFY_CLIENT_SECRET__: string
-declare const __ENV_OPENROUTER_API_KEY__: string
-declare const __ENV_OPENROUTER_MODEL__: string
-declare const __ENV_NOCODE_SPOTIFY_CLOUD_NAME__: string
-declare const __ENV_NOCODE_SPOTIFY_TOKEN__: string
-declare const __ENV_TAVILY_API_KEY__: string
-declare const __ENV_ACOUSTID_API_KEY__: string
-declare const __ENV_DISCOGS_TOKEN__: string
-declare const __ENV_GROQ_API_KEY__: string
-declare const __ENV_GROQ_MODEL__: string
+declare const __ENV_CONVEX_URL__: string
 
 function injectEnv() {
-  const vars: Record<string, string> = {
-    SPOTIFY_CLIENT_ID: __ENV_SPOTIFY_CLIENT_ID__,
-    SPOTIFY_CLIENT_SECRET: __ENV_SPOTIFY_CLIENT_SECRET__,
-    OPENROUTER_API_KEY: __ENV_OPENROUTER_API_KEY__,
-    OPENROUTER_MODEL: __ENV_OPENROUTER_MODEL__,
-    NOCODE_SPOTIFY_CLOUD_NAME: __ENV_NOCODE_SPOTIFY_CLOUD_NAME__,
-    NOCODE_SPOTIFY_TOKEN: __ENV_NOCODE_SPOTIFY_TOKEN__,
-    TAVILY_API_KEY: __ENV_TAVILY_API_KEY__,
-    ACOUSTID_API_KEY: __ENV_ACOUSTID_API_KEY__,
-    DISCOGS_TOKEN: __ENV_DISCOGS_TOKEN__,
-    GROQ_API_KEY: __ENV_GROQ_API_KEY__,
-    GROQ_MODEL: __ENV_GROQ_MODEL__,
-  }
-  for (const [key, value] of Object.entries(vars)) {
-    if (value && !process.env[key]) {
-      process.env[key] = value
-    }
+  if (__ENV_CONVEX_URL__ && !process.env.CONVEX_URL) {
+    process.env.CONVEX_URL = __ENV_CONVEX_URL__
   }
 }
 
@@ -180,9 +154,9 @@ ipcMain.handle('check:run', async (_event, trackInput: string) => {
     const configUrl = pathToFileURL(join(cliDist, 'dist/config/index.js')).href
 
     const { PipelineRunner } = await import(runnerUrl)
-    const { getConfig } = await import(configUrl)
+    const { getConfigAsync } = await import(configUrl)
 
-    const config = getConfig()
+    const config = await getConfigAsync()
     const pipeline = new PipelineRunner(config)
 
     const sendProgress = (event: PipelineEvent) => {
@@ -209,10 +183,10 @@ ipcMain.handle('spotify:search', async (_event, query: string) => {
     const configUrl = pathToFileURL(join(cliDist, 'dist/config/index.js')).href
     const spotifyUrl = pathToFileURL(join(cliDist, 'dist/services/spotify.js')).href
 
-    const { getConfig } = await import(configUrl)
+    const { getConfigAsync } = await import(configUrl)
     const { getSpotifyToken, searchTracks } = await import(spotifyUrl)
 
-    const config = getConfig()
+    const config = await getConfigAsync()
     const token = await getSpotifyToken(config.spotify.clientId, config.spotify.clientSecret)
     const results = await searchTracks(query, token)
 

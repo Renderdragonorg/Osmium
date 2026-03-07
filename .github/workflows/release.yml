@@ -75,17 +75,7 @@ jobs:
       - name: Build Desktop (electron-vite)
         working-directory: desktop-app
         env:
-          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
-          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          OPENROUTER_MODEL: ${{ secrets.OPENROUTER_MODEL }}
-          NOCODE_SPOTIFY_CLOUD_NAME: ${{ secrets.NOCODE_SPOTIFY_CLOUD_NAME }}
-          NOCODE_SPOTIFY_TOKEN: ${{ secrets.NOCODE_SPOTIFY_TOKEN }}
-          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
-          ACOUSTID_API_KEY: ${{ secrets.ACOUSTID_API_KEY }}
-          DISCOGS_TOKEN: ${{ secrets.DISCOGS_TOKEN }}
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GROQ_MODEL: ${{ secrets.GROQ_MODEL }}
+          CONVEX_URL: ${{ secrets.CONVEX_URL }}
         run: npm run build
 
       # 3. Package with electron-builder

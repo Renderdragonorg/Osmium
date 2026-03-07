@@ -41,6 +41,10 @@
       {
         "from": "../node_modules",
         "to": "cli-dist/node_modules"
+      },
+      {
+        "from": "../convex",
+        "to": "cli-dist/convex"
       }
     ],
     "win": {
