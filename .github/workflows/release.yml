@@ -1,7 +1,9 @@
-name: Release
+name: CI/Release
 
 on:
   push:
+    branches:
+      - '**'
     tags:
       - 'v*'
 
@@ -12,9 +14,31 @@ env:
   NODE_VERSION: '20'
 
 jobs:
-  # ─── CLI Release ───────────────────────────────────────
+  # ─── CI (runs on every push) ─────────────────────────────
+  ci:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build CLI
+        run: npm run build
+
+      - name: Typecheck
+        run: npm run typecheck
+
+  # ─── CLI Release (v* tags only) ──────────────────────────
   release-cli:
     name: Release CLI
+    needs: ci
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,6 +65,8 @@ jobs:
   # ─── Desktop Release ───────────────────────────────────
   release-desktop:
     name: Desktop (${{ matrix.os }})
+    needs: ci
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -94,3 +120,4 @@ jobs:
             desktop-app/dist/*.deb
             desktop-app/dist/*.zip
             desktop-app/dist/*.tar.gz
+
