@@ -18,6 +18,7 @@ You must respond with ONLY valid JSON matching this exact schema:
   "labelType": "major" | "indie" | "self-released" | "unknown",
   "labelInfo": "string (brief sentence about the label or their general licensing ethos based on search results)",
   "licensingVerdict": "string (a clear 1-2 sentence final verdict on if they can use it)",
+  "licensingUrl": "string or null (if you found a direct URL to the label's licensing page, sync licensing portal, or music licensing platform. Extract from web search results. Must be a valid URL starting with https://)",
   "explanation": "string (a detailed paragraph explaining the rights situation, referencing the master and composition rights)",
   "actionableSteps": ["string", "string"] (2-3 concrete next steps to legally use the track)
 }
@@ -26,6 +27,7 @@ Important Guidelines:
 - If the track is public domain, 'requiresLicense' is likely 'no'.
 - If the track is owned by a major label (UMG, Sony, Warner etc.), 'requiresLicense' is 'yes'.
 - If the search results indicate the label offers "sync licenses" or "creator safe" music, note that.
+- IMPORTANT: Extract the licensingUrl from web search results if available. Look for URLs containing words like "license", "sync", "music", "creators", "licensing" from the label's official domain.
 - Keep the explanation professional and legally sound, but easy to understand for a content creator.`;
 
     const userMessage = `Analyze the copyright data and web search results to produce a final AI summary.

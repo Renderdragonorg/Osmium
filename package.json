@@ -11,7 +11,8 @@
     "dev": "tsx src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && node --input-type=module -e \"import { existsSync, readdirSync } from 'node:fs'; import { join } from 'node:path'; import { spawnSync } from 'node:child_process'; const dir = 'dist/tests'; if (!existsSync(dir)) { process.exit(0); } const files = readdirSync(dir).filter((name) => name.endsWith('.test.js')).map((name) => join(dir, name)); if (files.length === 0) { process.exit(0); } const result = spawnSync('node', ['--test', ...files], { stdio: 'inherit' }); process.exit(result.status ?? 1);\""
   },
   "keywords": [
     "music",

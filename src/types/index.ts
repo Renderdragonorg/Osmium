@@ -182,6 +182,7 @@ export interface AISummary {
     labelType: "major" | "indie" | "self-released" | "unknown";
     labelInfo: string;
     licensingVerdict: string;
+    licensingUrl?: string;
     explanation: string;
     actionableSteps: string[];
     webSearchSources: WebSearchSource[];

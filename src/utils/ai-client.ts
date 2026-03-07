@@ -5,12 +5,21 @@ function isRateLimitError(error: unknown): boolean {
     if (error instanceof OpenAI.APIError) {
         return error.status === 429;
     }
+    if (OpenAI.APIConnectionError && error instanceof OpenAI.APIConnectionError) {
+        return true;
+    }
+    if (OpenAI.RateLimitError && error instanceof OpenAI.RateLimitError) {
+        return true;
+    }
     if (error instanceof Error) {
         const msg = error.message.toLowerCase();
         return (
             msg.includes("429") ||
             msg.includes("rate limit") ||
-            msg.includes("too many requests")
+            msg.includes("too many requests") ||
+            msg.includes("overloaded") ||
+            msg.includes("capacity") ||
+            msg.includes("temporarily unavailable")
         );
     }
     return false;
@@ -54,26 +63,34 @@ export async function chatCompletion(
         }
         return content;
     } catch (error) {
-        if (isRateLimitError(error) && config.modal) {
-            console.warn("OpenRouter rate limited, falling back to Modal...");
+        if (isRateLimitError(error)) {
+            console.warn("OpenRouter rate limited:", error instanceof Error ? error.message : String(error));
+            
+            if (config.modal) {
+                console.warn("Falling back to Modal...");
+                try {
+                    const modalClient = new OpenAI({
+                        baseURL: config.modal.baseURL,
+                        apiKey: config.modal.apiKey,
+                    });
 
-            const modalClient = new OpenAI({
-                baseURL: config.modal.baseURL,
-                apiKey: config.modal.apiKey,
-            });
+                    const result = await modalClient.chat.completions.create({
+                        model: config.modal.model,
+                        messages,
+                        max_tokens: options.maxTokens,
+                        temperature: options.temperature,
+                    });
 
-            const result = await modalClient.chat.completions.create({
-                model: config.modal.model,
-                messages,
-                max_tokens: options.maxTokens,
-                temperature: options.temperature,
-            });
-
-            const content = result.choices?.[0]?.message?.content;
-            if (!content) {
-                throw new Error("No response content from Modal");
+                    const content = result.choices?.[0]?.message?.content;
+                    if (!content) {
+                        throw new Error("No response content from Modal");
+                    }
+                    return content;
+                } catch (modalError) {
+                    console.error("Modal fallback also failed:", modalError instanceof Error ? modalError.message : String(modalError));
+                    throw modalError;
+                }
             }
-            return content;
         }
 
         throw error;

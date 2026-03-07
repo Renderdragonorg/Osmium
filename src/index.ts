@@ -10,6 +10,7 @@ import { getPlaylistTracksViaNoCodeAPI } from "./services/nocode-spotify.js";
 import { PipelineRunner } from "./pipeline/runner.js";
 import { Logger } from "./utils/logger.js";
 import { parsePlaylistInput } from "./utils/validation.js";
+import { loadHistory, saveToHistory, clearHistory, getStorePathForDisplay } from "./utils/history.js";
 import type { PipelineEvent, CopyrightVerdict } from "./types/index.js";
 
 const VERSION = "1.0.0";
@@ -21,7 +22,7 @@ program
     .description(
         chalk.hex("#e8ff47")("◆ Osmium") +
         chalk.gray(
-            " — AI-powered music copyright checker"
+            " — The Best tool for Checking Spotify Track Copyrights (and Playlists!)"
         )
     )
     .version(VERSION);
@@ -92,6 +93,9 @@ program
 
             // Display verdict
             displayVerdict(verdict, logger);
+
+            // Save to history
+            await saveToHistory(verdict);
 
             // Write to file if requested
             if (options.output) {
@@ -188,6 +192,7 @@ program
 
                     const verdict = await pipeline.run(t.id, { verbose: options.verbose ?? false });
                     verdicts.push(verdict);
+                    await saveToHistory(verdict);
 
                     spinner.stop();
                     const risk = colorRiskBadge(verdict.riskLevel);
@@ -262,10 +267,17 @@ function displayVerdict(verdict: CopyrightVerdict, logger: Logger): void {
     logger.header("Copyright Verdict");
     console.log();
 
+    const spotifyUrl = `https://open.spotify.com/track/${verdict.track.spotifyId}`;
+    
     const rows: Array<[string, string, string]> = [
         [
             "Track",
             `${verdict.track.name} — ${verdict.track.artists.join(", ")}`,
+            "",
+        ],
+        [
+            "Spotify",
+            chalk.cyan.underline(spotifyUrl),
             "",
         ],
         [
@@ -364,6 +376,13 @@ function displayVerdict(verdict: CopyrightVerdict, logger: Logger): void {
         console.log(`  ${bannerText}`);
         console.log();
         console.log(`  ${chalk.white(summary.explanation)}`);
+        
+        if (summary.licensingUrl) {
+            console.log();
+            console.log(chalk.gray("  Licensing URL:"));
+            console.log(`  ${chalk.cyan.underline(summary.licensingUrl)}`);
+        }
+        
         console.log();
         console.log(chalk.gray("  Actionable Steps:"));
         for (const step of summary.actionableSteps) {
@@ -372,9 +391,10 @@ function displayVerdict(verdict: CopyrightVerdict, logger: Logger): void {
 
         if (summary.webSearchSources.length > 0) {
             console.log();
-            console.log(chalk.gray("  Web Sources Investigated:"));
+            console.log(chalk.gray("  Web Sources:"));
             for (const src of summary.webSearchSources) {
-                console.log(`    ${chalk.dim("•")} ${chalk.cyan(src.title)}`);
+                console.log(`    ${chalk.dim("•")} ${chalk.white(src.title)}`);
+                console.log(`      ${chalk.cyan.underline(src.url)}`);
             }
         }
     }
@@ -428,5 +448,64 @@ function colorConfidence(confidence: number): string {
     if (confidence >= 50) return chalk.yellow(`[MEDIUM]`);
     return chalk.red(`[LOW]`);
 }
+
+program
+    .command("history")
+    .description("View past copyright checks (synced with desktop app)")
+    .option("-c, --clear", "Clear all history", false)
+    .option("-l, --limit <n>", "Limit number of entries to show", "20")
+    .action(async (options: { clear?: boolean; limit?: string }) => {
+        if (options.clear) {
+            await clearHistory();
+            console.log();
+            console.log(chalk.green("  ✓ History cleared"));
+            console.log();
+            return;
+        }
+
+        const limit = options.limit ? parseInt(options.limit, 10) : 20;
+        const history = await loadHistory();
+
+        console.log();
+        console.log(
+            chalk.bold(chalk.hex("#e8ff47")("  ◆ OSMIUM")) +
+            chalk.gray(" · Check History")
+        );
+        console.log(chalk.dim("  ─".repeat(25)));
+        console.log();
+
+        if (history.length === 0) {
+            console.log(chalk.dim("  No checks in history"));
+            console.log();
+            console.log(chalk.dim(`  Store: ${getStorePathForDisplay()}`));
+            console.log();
+            return;
+        }
+
+        console.log(chalk.dim(`  ${history.length} check(s) in history`));
+        console.log();
+
+        const display = history.slice(0, limit);
+
+        for (let i = 0; i < display.length; i++) {
+            const v = display[i];
+            const num = chalk.dim(`${(i + 1).toString().padStart(3)}`);
+            const risk = colorRiskBadge(v.riskLevel);
+            const conf = chalk.dim(`${v.confidence}%`.padStart(4));
+            const track = chalk.white(v.track.name);
+            const artists = chalk.gray(`— ${v.track.artists.join(", ")}`);
+
+            console.log(`  ${num} ${risk} ${conf}  ${track} ${artists}`);
+        }
+
+        if (history.length > limit) {
+            console.log();
+            console.log(chalk.dim(`  ... and ${history.length - limit} more`));
+        }
+
+        console.log();
+        console.log(chalk.dim(`  Store: ${getStorePathForDisplay()}`));
+        console.log();
+    });
 
 program.parse();
