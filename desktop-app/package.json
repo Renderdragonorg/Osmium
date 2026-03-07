@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Osmium Desktop - music copyright checker By Renderdragon",
   "main": "./out/main/index.js",
-  "author": "Osmium",
+  "author": "Osmium <contact@osmium.dev>",
   "license": "MIT",
   "appId": "com.osmium.desktop",
   "scripts": {
