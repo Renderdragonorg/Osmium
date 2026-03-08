@@ -1,34 +1,23 @@
-import { getConfig } from "../src/config/index.js";
 import { getSpotifyToken } from "../src/services/spotify.js";
 import { fetchJSON } from "../src/utils/http.js";
+import { getConfig } from "../src/config/index.js";
 
-async function main() {
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+async function run() {
+    console.log("Starting...");
     const config = getConfig();
     const token = await getSpotifyToken(config.spotify.clientId, config.spotify.clientSecret);
+    console.log("Token:", token.substring(0, 5) + "...");
 
-    const playlistId = "4bwSNOlsRr0HURnVCvX8SK";
-    const SPOTIFY_API_BASE = "https://api.spotify.com/v1";
-
-    console.log("1. Just playlist URL NO PARAMS");
-    const p1 = await fetchJSON(
-        `${SPOTIFY_API_BASE}/playlists/${playlistId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-    );
-    console.log("keys 1:", Object.keys(p1));
-    if (p1.tracks) {
-        console.log("p1.tracks.total:", p1.tracks.total);
-        console.log("p1.tracks keys:", Object.keys(p1.tracks));
-    } else {
-        console.log("no tracks object returned at all!");
+    const url = `https://api.spotify.com/v1/search?q=blinding%20lights&type=track&limit=20`;
+    console.log("Fetching:", url);
+    try {
+        const response = await fetchJSON(url, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        console.log("Success:", !!response);
+    } catch (err) {
+        console.error(err);
     }
-
-    console.log("3. Tracks url");
-    const p3 = await fetchJSON(
-        `${SPOTIFY_API_BASE}/playlists/${playlistId}/tracks?limit=50&offset=0`,
-        { headers: { Authorization: `Bearer ${token}` } }
-    );
-    console.log("keys 3:", Object.keys(p3));
 }
 
-main().catch(console.error);
+run();

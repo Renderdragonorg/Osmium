@@ -1,7 +1,7 @@
 {
   "name": "osmium-cli",
   "version": "1.0.0",
-  "description": "AI-powered music copyright checker CLI — resolves track ownership via Spotify, PRO registries, audio fingerprinting, and multi-agent reasoning",
+  "description": "music copyright checker By Renderdragon CLI — resolves track ownership via Spotify, PRO registries, audio fingerprinting, and multi-agent reasoning",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -11,7 +11,8 @@
     "dev": "tsx src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && node --input-type=module -e \"import { existsSync, readdirSync } from 'node:fs'; import { join } from 'node:path'; import { spawnSync } from 'node:child_process'; const dir = 'dist/tests'; if (!existsSync(dir)) { process.exit(0); } const files = readdirSync(dir).filter((name) => name.endsWith('.test.js')).map((name) => join(dir, name)); if (files.length === 0) { process.exit(0); } const result = spawnSync('node', ['--test', ...files], { stdio: 'inherit' }); process.exit(result.status ?? 1);\""
   },
   "keywords": [
     "music",
@@ -22,11 +23,13 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "@inquirer/prompts": "^8.3.0",
     "@openrouter/sdk": "^0.9.11",
     "@tavily/core": "^0.7.2",
     "chalk": "^5.4.1",
     "cheerio": "^1.0.0",
     "commander": "^13.1.0",
+    "dot-env": "^0.0.1",
     "dotenv": "^16.4.7",
     "openai": "^6.25.0",
     "ora": "^8.2.0"

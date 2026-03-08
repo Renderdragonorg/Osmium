@@ -172,3 +172,36 @@ export async function getPlaylistTracks(
         tracks,
     };
 }
+
+export interface SpotifySearchResult {
+    id: string;
+    name: string;
+    artists: string[];
+    album: string;
+    duration_ms: number;
+}
+
+/**
+ * Search for tracks on Spotify.
+ */
+export async function searchTracks(
+    query: string,
+    token: string,
+    limit: number = 20
+): Promise<SpotifySearchResult[]> {
+    const response = await fetchJSON<{
+        tracks: {
+            items: SpotifyTrack[];
+        };
+    }>(`${SPOTIFY_API_BASE}/search?q=${encodeURIComponent(query)}&type=track`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+
+    return response.tracks.items.map((track) => ({
+        id: track.id,
+        name: track.name,
+        artists: track.artists.map((a) => a.name),
+        album: track.album.name,
+        duration_ms: track.duration_ms,
+    }));
+}

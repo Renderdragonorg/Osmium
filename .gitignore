@@ -3,3 +3,11 @@ dist/
 .env
 *.tgz
 plans/
+out/
+desktop-app/node_modules/
+desktop-app/dist/
+desktop-app/out/
+desktop-app/.env
+results.json
+tmp/
+.env
