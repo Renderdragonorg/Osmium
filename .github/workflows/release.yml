@@ -42,6 +42,7 @@ jobs:
   release-desktop:
     name: Desktop (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    environment: env
     strategy:
       fail-fast: false
       matrix:
@@ -75,17 +76,17 @@ jobs:
       - name: Build Desktop (electron-vite)
         working-directory: desktop-app
         env:
-          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
-          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          OPENROUTER_MODEL: ${{ secrets.OPENROUTER_MODEL }}
-          NOCODE_SPOTIFY_CLOUD_NAME: ${{ secrets.NOCODE_SPOTIFY_CLOUD_NAME }}
-          NOCODE_SPOTIFY_TOKEN: ${{ secrets.NOCODE_SPOTIFY_TOKEN }}
-          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
-          ACOUSTID_API_KEY: ${{ secrets.ACOUSTID_API_KEY }}
-          DISCOGS_TOKEN: ${{ secrets.DISCOGS_TOKEN }}
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GROQ_MODEL: ${{ secrets.GROQ_MODEL }}
+          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID || vars.SPOTIFY_CLIENT_ID }}
+          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET || vars.SPOTIFY_CLIENT_SECRET }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY || vars.OPENROUTER_API_KEY }}
+          OPENROUTER_MODEL: ${{ secrets.OPENROUTER_MODEL || vars.OPENROUTER_MODEL }}
+          NOCODE_SPOTIFY_CLOUD_NAME: ${{ secrets.NOCODE_SPOTIFY_CLOUD_NAME || vars.NOCODE_SPOTIFY_CLOUD_NAME }}
+          NOCODE_SPOTIFY_TOKEN: ${{ secrets.NOCODE_SPOTIFY_TOKEN || vars.NOCODE_SPOTIFY_TOKEN }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY || vars.TAVILY_API_KEY }}
+          ACOUSTID_API_KEY: ${{ secrets.ACOUSTID_API_KEY || vars.ACOUSTID_API_KEY }}
+          DISCOGS_TOKEN: ${{ secrets.DISCOGS_TOKEN || vars.DISCOGS_TOKEN }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY || vars.GROQ_API_KEY }}
+          GROQ_MODEL: ${{ secrets.GROQ_MODEL || vars.GROQ_MODEL }}
         run: npm run build
 
       # 3. Package with electron-builder
