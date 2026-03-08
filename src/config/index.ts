@@ -1,7 +1,8 @@
 import dotenv from "dotenv";
+import path from "path";
 import type { AppConfig } from "../types/index.js";
 
-dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 let _config: AppConfig | null = null;
 

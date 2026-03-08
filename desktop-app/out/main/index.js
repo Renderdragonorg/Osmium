@@ -10215,7 +10215,34 @@ class ElectronStore extends Conf {
   }
 }
 const __dirname$1 = path$1.dirname(url.fileURLToPath(require("url").pathToFileURL(__filename).href));
-const OSMIUM_ICON = "data:image/png;base64,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";
+function injectEnv() {
+  const vars = {
+    SPOTIFY_CLIENT_ID: "",
+    SPOTIFY_CLIENT_SECRET: "",
+    OPENROUTER_API_KEY: "",
+    OPENROUTER_MODEL: "",
+    NOCODE_SPOTIFY_CLOUD_NAME: "",
+    NOCODE_SPOTIFY_TOKEN: "",
+    TAVILY_API_KEY: "",
+    ACOUSTID_API_KEY: "",
+    DISCOGS_TOKEN: "",
+    GROQ_API_KEY: "",
+    GROQ_MODEL: ""
+  };
+  for (const [key, value] of Object.entries(vars)) {
+    if (value && !process.env[key]) {
+      process.env[key] = value;
+    }
+  }
+}
+injectEnv();
+function getCliDistPath() {
+  if (electron.app.isPackaged) {
+    return path$1.join(process.resourcesPath, "cli-dist");
+  }
+  return path$1.join(__dirname$1, "../../..");
+}
+const OSMIUM_ICON = "data:image/png;base64,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";
 function getIcon() {
   const paths = [
     path$1.join(__dirname$1, "../../public/icon.png"),
@@ -10292,9 +10319,9 @@ electron.ipcMain.handle("store:clear-checks", () => store.set("checks", []));
 electron.ipcMain.handle("store:get-path", () => store.path);
 electron.ipcMain.handle("check:run", async (_event, trackInput) => {
   try {
-    const osmiumPath = path$1.join(__dirname$1, "../../..");
-    const runnerUrl = url.pathToFileURL(path$1.join(osmiumPath, "dist/pipeline/runner.js")).href;
-    const configUrl = url.pathToFileURL(path$1.join(osmiumPath, "dist/config/index.js")).href;
+    const cliDist = getCliDistPath();
+    const runnerUrl = url.pathToFileURL(path$1.join(cliDist, "dist/pipeline/runner.js")).href;
+    const configUrl = url.pathToFileURL(path$1.join(cliDist, "dist/config/index.js")).href;
     const { PipelineRunner } = await import(runnerUrl);
     const { getConfig } = await import(configUrl);
     const config = getConfig();
@@ -10316,9 +10343,9 @@ electron.ipcMain.handle("check:run", async (_event, trackInput) => {
 });
 electron.ipcMain.handle("spotify:search", async (_event, query) => {
   try {
-    const osmiumPath = path$1.join(__dirname$1, "../../..");
-    const configUrl = url.pathToFileURL(path$1.join(osmiumPath, "dist/config/index.js")).href;
-    const spotifyUrl = url.pathToFileURL(path$1.join(osmiumPath, "dist/services/spotify.js")).href;
+    const cliDist = getCliDistPath();
+    const configUrl = url.pathToFileURL(path$1.join(cliDist, "dist/config/index.js")).href;
+    const spotifyUrl = url.pathToFileURL(path$1.join(cliDist, "dist/services/spotify.js")).href;
     const { getConfig } = await import(configUrl);
     const { getSpotifyToken, searchTracks } = await import(spotifyUrl);
     const config = getConfig();
