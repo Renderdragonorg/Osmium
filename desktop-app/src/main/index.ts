@@ -5,6 +5,7 @@ import Store from 'electron-store'
 import { existsSync } from 'fs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
+app.disableHardwareAcceleration()
 
 /* ──────────────────────────────────────────────
  * Compile-time env injection (populated by electron-vite define)
@@ -111,6 +112,34 @@ const store = new Store<{ checks: CopyrightVerdict[] }>({
 })
 
 let mainWindow: BrowserWindow | null = null
+let loadTimeout: NodeJS.Timeout | null = null
+
+function showLoadError(errorTitle: string, details: string) {
+  const html = `<!doctype html>
+  <html>
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>Osmium</title>
+      <style>
+        body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: #0a0a0a; color: #e5e5e5; }
+        .wrap { padding: 32px; }
+        h1 { font-size: 20px; margin: 0 0 12px; }
+        p { color: #b3b3b3; }
+        pre { white-space: pre-wrap; background: #111; padding: 12px; border-radius: 8px; color: #e8ff47; }
+      </style>
+    </head>
+    <body>
+      <div class="wrap">
+        <h1>${errorTitle}</h1>
+        <p>The renderer failed to load. Check the details below.</p>
+        <pre>${details}</pre>
+      </div>
+    </body>
+  </html>`
+  const dataUrl = `data:text/html;charset=UTF-8,${encodeURIComponent(html)}`
+  mainWindow?.loadURL(dataUrl)
+}
 
 async function createWindow() {
   const icon = getIcon()
@@ -140,11 +169,42 @@ async function createWindow() {
     return { action: 'deny' }
   })
 
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    if (loadTimeout) {
+      clearTimeout(loadTimeout)
+      loadTimeout = null
+    }
+    showLoadError('Failed to load renderer', `Code: ${errorCode}\nDescription: ${errorDescription}\nURL: ${validatedURL}`)
+  })
+
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    if (loadTimeout) {
+      clearTimeout(loadTimeout)
+      loadTimeout = null
+    }
+    showLoadError('Renderer process crashed', `Reason: ${details.reason}\nExit code: ${details.exitCode}`)
+  })
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    if (loadTimeout) {
+      clearTimeout(loadTimeout)
+      loadTimeout = null
+    }
+  })
+
+  loadTimeout = setTimeout(() => {
+    const url = mainWindow?.webContents.getURL() || 'unknown'
+    showLoadError('Renderer did not finish loading', `URL: ${url}`)
+  }, 10000)
+
+  const startURL = !app.isPackaged
+    ? (process.env.ELECTRON_RENDERER_URL || 'http://localhost:5173')
+    : pathToFileURL(join(__dirname, '../renderer/index.html')).href
+
+  mainWindow.loadURL(startURL)
+
   if (!app.isPackaged) {
-    mainWindow.loadURL('http://localhost:5173')
     mainWindow.webContents.openDevTools()
-  } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 }
 

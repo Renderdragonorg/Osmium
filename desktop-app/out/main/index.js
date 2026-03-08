@@ -10215,6 +10215,7 @@ class ElectronStore extends Conf {
   }
 }
 const __dirname$1 = path$1.dirname(url.fileURLToPath(require("url").pathToFileURL(__filename).href));
+electron.app.disableHardwareAcceleration();
 function injectEnv() {
   const vars = {
     SPOTIFY_CLIENT_ID: "",
@@ -10267,6 +10268,33 @@ const store = new ElectronStore({
   defaults: { checks: [] }
 });
 let mainWindow = null;
+let loadTimeout = null;
+function showLoadError(errorTitle, details) {
+  const html = `<!doctype html>
+  <html>
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>Osmium</title>
+      <style>
+        body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: #0a0a0a; color: #e5e5e5; }
+        .wrap { padding: 32px; }
+        h1 { font-size: 20px; margin: 0 0 12px; }
+        p { color: #b3b3b3; }
+        pre { white-space: pre-wrap; background: #111; padding: 12px; border-radius: 8px; color: #e8ff47; }
+      </style>
+    </head>
+    <body>
+      <div class="wrap">
+        <h1>${errorTitle}</h1>
+        <p>The renderer failed to load. Check the details below.</p>
+        <pre>${details}</pre>
+      </div>
+    </body>
+  </html>`;
+  const dataUrl = `data:text/html;charset=UTF-8,${encodeURIComponent(html)}`;
+  mainWindow?.loadURL(dataUrl);
+}
 async function createWindow() {
   const icon = getIcon();
   mainWindow = new electron.BrowserWindow({
@@ -10291,11 +10319,37 @@ async function createWindow() {
     electron.shell.openExternal(url2);
     return { action: "deny" };
   });
+  mainWindow.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
+    if (loadTimeout) {
+      clearTimeout(loadTimeout);
+      loadTimeout = null;
+    }
+    showLoadError("Failed to load renderer", `Code: ${errorCode}
+Description: ${errorDescription}
+URL: ${validatedURL}`);
+  });
+  mainWindow.webContents.on("render-process-gone", (_event, details) => {
+    if (loadTimeout) {
+      clearTimeout(loadTimeout);
+      loadTimeout = null;
+    }
+    showLoadError("Renderer process crashed", `Reason: ${details.reason}
+Exit code: ${details.exitCode}`);
+  });
+  mainWindow.webContents.on("did-finish-load", () => {
+    if (loadTimeout) {
+      clearTimeout(loadTimeout);
+      loadTimeout = null;
+    }
+  });
+  loadTimeout = setTimeout(() => {
+    const url2 = mainWindow?.webContents.getURL() || "unknown";
+    showLoadError("Renderer did not finish loading", `URL: ${url2}`);
+  }, 1e4);
+  const startURL = !electron.app.isPackaged ? process.env.ELECTRON_RENDERER_URL || "http://localhost:5173" : url.pathToFileURL(path$1.join(__dirname$1, "../renderer/index.html")).href;
+  mainWindow.loadURL(startURL);
   if (!electron.app.isPackaged) {
-    mainWindow.loadURL("http://localhost:5173");
     mainWindow.webContents.openDevTools();
-  } else {
-    mainWindow.loadFile(path$1.join(__dirname$1, "../renderer/index.html"));
   }
 }
 electron.app.whenReady().then(createWindow);
