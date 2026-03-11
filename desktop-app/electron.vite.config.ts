@@ -21,8 +21,8 @@ export default defineConfig({
       '__ENV_TAVILY_API_KEY__': JSON.stringify(process.env.TAVILY_API_KEY || ''),
       '__ENV_ACOUSTID_API_KEY__': JSON.stringify(process.env.ACOUSTID_API_KEY || ''),
       '__ENV_DISCOGS_TOKEN__': JSON.stringify(process.env.DISCOGS_TOKEN || ''),
-      '__ENV_GROQ_API_KEY__': JSON.stringify(process.env.GROQ_API_KEY || ''),
-      '__ENV_GROQ_MODEL__': JSON.stringify(process.env.GROQ_MODEL || ''),
+      '__ENV_CEREBRAS_API_KEY__': JSON.stringify(process.env.CEREBRAS_API_KEY || ''),
+      '__ENV_CEREBRAS_MODEL__': JSON.stringify(process.env.CEREBRAS_MODEL || ''),
     }
   },
   preload: {

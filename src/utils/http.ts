@@ -1,3 +1,5 @@
+import { reportHttpRequest } from "./analytics.js";
+
 const DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
 interface FetchOptions extends RequestInit {
@@ -17,27 +19,67 @@ export async function fetchWithRetry(
         "User-Agent": DEFAULT_USER_AGENT,
         ...options.headers,
     };
+    const method = (options.method ?? "GET").toUpperCase();
 
     for (let attempt = 0; attempt <= retries; attempt++) {
+        const startedAt = Date.now();
         try {
             const response = await fetch(url, { ...options, headers });
+            const durationMs = Date.now() - startedAt;
 
             if (response.status === 429 && attempt < retries) {
                 const retryAfter = response.headers.get("Retry-After");
                 const delay = retryAfter
                     ? parseInt(retryAfter, 10) * 1000
                     : baseDelay * Math.pow(2, attempt);
+                reportHttpRequest({
+                    url,
+                    method,
+                    status: response.status,
+                    ok: response.ok,
+                    durationMs,
+                    attempt,
+                    retries,
+                    retryAfterMs: delay,
+                });
                 await sleep(delay);
                 continue;
             }
 
             if (!response.ok && attempt < retries && response.status >= 500) {
+                reportHttpRequest({
+                    url,
+                    method,
+                    status: response.status,
+                    ok: response.ok,
+                    durationMs,
+                    attempt,
+                    retries,
+                });
                 await sleep(baseDelay * Math.pow(2, attempt));
                 continue;
             }
 
+            reportHttpRequest({
+                url,
+                method,
+                status: response.status,
+                ok: response.ok,
+                durationMs,
+                attempt,
+                retries,
+            });
             return response;
         } catch (error) {
+            const durationMs = Date.now() - startedAt;
+            reportHttpRequest({
+                url,
+                method,
+                durationMs,
+                attempt,
+                retries,
+                error: error instanceof Error ? error.message : String(error),
+            });
             if (attempt === retries) throw error;
             await sleep(baseDelay * Math.pow(2, attempt));
         }

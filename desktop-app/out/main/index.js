@@ -2,6 +2,8 @@
 const electron = require("electron");
 const path$1 = require("path");
 const url = require("url");
+const http$1 = require("http");
+const https$1 = require("https");
 const process$1 = require("node:process");
 const path = require("node:path");
 const node_util = require("node:util");
@@ -305,9 +307,9 @@ const retryifyAsync = (fn, options) => {
           throw error2;
         if (Date.now() >= timestamp)
           throw error2;
-        const delay = Math.round(interval * Math.random());
-        if (delay > 0) {
-          const delayPromise = new Promise((resolve2) => setTimeout(resolve2, delay));
+        const delay2 = Math.round(interval * Math.random());
+        if (delay2 > 0) {
+          const delayPromise = new Promise((resolve2) => setTimeout(resolve2, delay2));
           return delayPromise.then(() => attempt.apply(void 0, args));
         } else {
           return attempt.apply(void 0, args);
@@ -10227,8 +10229,8 @@ function injectEnv() {
     TAVILY_API_KEY: "",
     ACOUSTID_API_KEY: "",
     DISCOGS_TOKEN: "",
-    GROQ_API_KEY: "",
-    GROQ_MODEL: ""
+    CEREBRAS_API_KEY: "",
+    CEREBRAS_MODEL: ""
   };
   for (const [key, value] of Object.entries(vars)) {
     if (value && !process.env[key]) {
@@ -10269,6 +10271,107 @@ const store = new ElectronStore({
 });
 let mainWindow = null;
 let loadTimeout = null;
+const UPDATE_REPO = {
+  owner: "Renderdragonorg",
+  repo: "Osmium"
+};
+function parseVersion(value) {
+  const cleaned = value.trim().replace(/^v/i, "").split("-")[0];
+  const parts = cleaned.split(".");
+  if (parts.length === 0) return null;
+  const numbers = parts.map((part) => Number(part));
+  if (numbers.some((num) => Number.isNaN(num))) return null;
+  return numbers;
+}
+function compareVersions(current, latest) {
+  const currentParts = parseVersion(current) ?? [];
+  const latestParts = parseVersion(latest) ?? [];
+  const maxLen = Math.max(currentParts.length, latestParts.length);
+  for (let i = 0; i < maxLen; i += 1) {
+    const a = currentParts[i] ?? 0;
+    const b = latestParts[i] ?? 0;
+    if (a > b) return 1;
+    if (a < b) return -1;
+  }
+  return 0;
+}
+async function fetchJson(url2, headers = {}) {
+  return await new Promise((resolve2, reject) => {
+    const target = new URL(url2);
+    const requester = target.protocol === "https:" ? https$1.request : http$1.request;
+    const req = requester(
+      {
+        method: "GET",
+        hostname: target.hostname,
+        port: target.port,
+        path: `${target.pathname}${target.search}`,
+        headers
+      },
+      (res) => {
+        let data = "";
+        res.on("data", (chunk) => {
+          data += chunk;
+        });
+        res.on("end", () => {
+          if (res.statusCode && res.statusCode >= 400) {
+            reject(new Error(`Request failed with status ${res.statusCode}`));
+            return;
+          }
+          try {
+            resolve2(JSON.parse(data));
+          } catch (error2) {
+            reject(error2);
+          }
+        });
+      }
+    );
+    req.on("error", reject);
+    req.end();
+  });
+}
+async function fetchLatestRelease() {
+  const url2 = `https://api.github.com/repos/${UPDATE_REPO.owner}/${UPDATE_REPO.repo}/releases/latest`;
+  const headers = {
+    "User-Agent": "Osmium-Desktop",
+    Accept: "application/vnd.github+json"
+  };
+  return await fetchJson(url2, headers);
+}
+function delay(ms) {
+  return new Promise((resolve2) => setTimeout(resolve2, ms));
+}
+async function checkUrlReady(url2, timeoutMs = 2e3) {
+  return await new Promise((resolve2) => {
+    const target = new URL(url2);
+    const requester = target.protocol === "https:" ? https$1.request : http$1.request;
+    const req = requester(
+      {
+        method: "HEAD",
+        hostname: target.hostname,
+        port: target.port,
+        path: target.pathname
+      },
+      (res) => {
+        res.resume();
+        resolve2(res.statusCode ? res.statusCode < 500 : false);
+      }
+    );
+    req.on("error", () => resolve2(false));
+    req.setTimeout(timeoutMs, () => {
+      req.destroy();
+      resolve2(false);
+    });
+    req.end();
+  });
+}
+async function waitForRenderer(url2, timeoutMs = 3e4, intervalMs = 500) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (await checkUrlReady(url2)) return true;
+    await delay(intervalMs);
+  }
+  return false;
+}
 function showLoadError(errorTitle, details) {
   const html = `<!doctype html>
   <html>
@@ -10342,17 +10445,44 @@ Exit code: ${details.exitCode}`);
       loadTimeout = null;
     }
   });
+  const loadTimeoutMs = electron.app.isPackaged ? 1e4 : 3e4;
   loadTimeout = setTimeout(() => {
     const url2 = mainWindow?.webContents.getURL() || "unknown";
     showLoadError("Renderer did not finish loading", `URL: ${url2}`);
-  }, 1e4);
+  }, loadTimeoutMs);
   const startURL = !electron.app.isPackaged ? process.env.ELECTRON_RENDERER_URL || "http://localhost:5173" : url.pathToFileURL(path$1.join(__dirname$1, "../renderer/index.html")).href;
+  if (!electron.app.isPackaged) {
+    const ready = await waitForRenderer(startURL);
+    if (!ready) {
+      showLoadError(
+        "Renderer dev server not reachable",
+        `URL: ${startURL}
+Make sure the renderer dev server is running (npm run dev in desktop-app).`
+      );
+      return;
+    }
+  }
   mainWindow.loadURL(startURL);
   if (!electron.app.isPackaged) {
     mainWindow.webContents.openDevTools();
   }
 }
-electron.app.whenReady().then(createWindow);
+function setContentSecurityPolicy() {
+  electron.session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        "Content-Security-Policy": [
+          "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.spotify.com https://accounts.spotify.com https://open.spotify.com https://api.openrouter.ai https://api.cerebras.ai https://api.tavily.com https://coverartarchive.org https://musicbrainz.org https://api.acoustid.org https://api.discogs.com https://api.github.com wss: ws:; frame-src 'none';"
+        ]
+      }
+    });
+  });
+}
+electron.app.whenReady().then(() => {
+  setContentSecurityPolicy();
+  createWindow();
+});
 electron.app.on("window-all-closed", () => {
   if (process.platform !== "darwin") electron.app.quit();
 });
@@ -10371,6 +10501,29 @@ electron.ipcMain.handle("shell:open-external", async (_event, url2) => {
 electron.ipcMain.handle("store:get-checks", () => store.get("checks"));
 electron.ipcMain.handle("store:clear-checks", () => store.set("checks", []));
 electron.ipcMain.handle("store:get-path", () => store.path);
+electron.ipcMain.handle("updates:check", async () => {
+  try {
+    const currentVersion = electron.app.getVersion();
+    const release = await fetchLatestRelease();
+    const latestVersion = release.tag_name ? release.tag_name.replace(/^v/i, "") : void 0;
+    if (!latestVersion || !release.html_url) {
+      return { success: false, error: "Unable to determine latest release." };
+    }
+    const updateAvailable = compareVersions(currentVersion, latestVersion) < 0;
+    return {
+      success: true,
+      updateAvailable,
+      currentVersion,
+      latestVersion,
+      releaseUrl: release.html_url
+    };
+  } catch (error2) {
+    return {
+      success: false,
+      error: error2 instanceof Error ? error2.message : String(error2)
+    };
+  }
+});
 electron.ipcMain.handle("check:run", async (_event, trackInput) => {
   try {
     const cliDist = getCliDistPath();

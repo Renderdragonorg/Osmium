@@ -299,7 +299,7 @@ export interface AppConfig {
         baseURL: string;
         defaultHeaders: Record<string, string>;
     };
-    groq?: {
+    cerebras?: {
         apiKey: string;
         model: string;
         baseURL: string;
@@ -312,5 +312,9 @@ export interface AppConfig {
     };
     tavily: {
         apiKey?: string;
+    };
+    discordWebhook?: {
+        url?: string;
+        customMessage?: string;
     };
 }

@@ -19,6 +19,6 @@
       "@/*": ["src/renderer/src/*"]
     }
   },
-  "include": ["src/renderer/src/**/*.ts", "src/renderer/src/**/*.tsx"],
+  "include": ["src/renderer/src/**/*.ts", "src/renderer/src/**/*.tsx", "shiny-text/**/*.tsx"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

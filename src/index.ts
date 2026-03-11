@@ -11,6 +11,7 @@ import { PipelineRunner } from "./pipeline/runner.js";
 import { Logger } from "./utils/logger.js";
 import { parsePlaylistInput } from "./utils/validation.js";
 import { loadHistory, saveToHistory, clearHistory, getStorePathForDisplay } from "./utils/history.js";
+import { shutdownAnalytics } from "./utils/analytics.js";
 import type { PipelineEvent, CopyrightVerdict } from "./types/index.js";
 
 const VERSION = "1.0.0";
@@ -104,11 +105,13 @@ async function runCheck(track: string, options: { output?: string; verbose?: boo
             console.log();
             logger.success(`Verdict written to ${chalk.bold(options.output)}`);
         }
+        await shutdownAnalytics();
     } catch (error) {
         spinner.stop();
         logger.error(
             error instanceof Error ? error.message : String(error)
         );
+        await shutdownAnalytics();
         process.exit(1);
     }
 }

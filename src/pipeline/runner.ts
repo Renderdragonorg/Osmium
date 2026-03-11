@@ -22,6 +22,13 @@ import { assessRisk } from "../agents/risk-assessor.js";
 import { searchWeb } from "../services/web-search.js";
 import { generateAISummary } from "../agents/summary-agent.js";
 import { parseTrackInput } from "../utils/validation.js";
+import {
+    initAnalytics,
+    recordStep,
+    reportCheckCompleted,
+    reportCheckFailed,
+    withCheckContext,
+} from "../utils/analytics.js";
 
 /**
  * PipelineRunner — orchestrates the full copyright checking pipeline.
@@ -36,9 +43,11 @@ export class PipelineRunner extends EventEmitter {
     constructor(config: AppConfig) {
         super();
         this.config = config;
+        initAnalytics(config);
     }
 
     private emit_progress(event: PipelineEvent): void {
+        recordStep(event);
         this.emit("progress", event);
     }
 
@@ -46,42 +55,44 @@ export class PipelineRunner extends EventEmitter {
      * Run the full copyright checking pipeline for a Spotify track.
      */
     async run(trackInput: string, pipelineConfig: PipelineConfig): Promise<CopyrightVerdict> {
-        const dataSources: string[] = [];
+        return withCheckContext({ trackInput }, async () => {
+            try {
+                const dataSources: string[] = [];
 
-        // ─── Step 1: Track Resolution ───────────────────────
-        this.emit_progress({
-            step: 1,
-            name: "track-resolution",
-            status: "in_progress",
-            message: "Resolving Spotify track...",
-        });
+                // ─── Step 1: Track Resolution ───────────────────────
+                this.emit_progress({
+                    step: 1,
+                    name: "track-resolution",
+                    status: "in_progress",
+                    message: "Resolving Spotify track...",
+                });
 
-        const trackId = parseTrackInput(trackInput);
-        const token = await getSpotifyToken(
-            this.config.spotify.clientId,
-            this.config.spotify.clientSecret
-        );
-        const { track, album } = await getTrackWithAlbum(trackId, token);
+                const trackId = parseTrackInput(trackInput);
+                const token = await getSpotifyToken(
+                    this.config.spotify.clientId,
+                    this.config.spotify.clientSecret
+                );
+                const { track, album } = await getTrackWithAlbum(trackId, token);
 
-        dataSources.push("Spotify Web API");
+                dataSources.push("Spotify Web API");
 
-        const isrc = track.external_ids?.isrc ?? "";
+                const isrc = track.external_ids?.isrc ?? "";
 
-        this.emit_progress({
-            step: 1,
-            name: "track-resolution",
-            status: "completed",
-            message: `${track.name} — ${track.artists.map((a) => a.name).join(", ")}`,
-            data: {
-                track: track.name,
-                artists: track.artists.map((a) => a.name),
-                isrc: isrc,
-                label: album.label,
-            },
-        });
+                this.emit_progress({
+                    step: 1,
+                    name: "track-resolution",
+                    status: "completed",
+                    message: `${track.name} — ${track.artists.map((a) => a.name).join(", ")}`,
+                    data: {
+                        track: track.name,
+                        artists: track.artists.map((a) => a.name),
+                        isrc: isrc,
+                        label: album.label,
+                    },
+                });
 
-        const artistNames = track.artists.map((a) => a.name);
-        const primaryArtist = artistNames[0] ?? "";
+                const artistNames = track.artists.map((a) => a.name);
+                const primaryArtist = artistNames[0] ?? "";
 
         // ─── Step 2: Credits Parsing ────────────────────────
         this.emit_progress({
@@ -422,6 +433,12 @@ export class PipelineRunner extends EventEmitter {
             });
         }
 
-        return verdict;
+                await reportCheckCompleted(verdict);
+                return verdict;
+            } catch (error) {
+                await reportCheckFailed(error instanceof Error ? error.message : String(error));
+                throw error;
+            }
+        });
     }
 }
