@@ -58,7 +58,7 @@ export function validateConfig(): AppConfig {
             ? {
                   cerebras: {
                       apiKey: process.env.CEREBRAS_API_KEY,
-                      model: process.env.CEREBRAS_MODEL || "cerebras/llama-3.3-70b",
+                      model: process.env.CEREBRAS_MODEL || "gpt-oss-120b",
                       baseURL: "https://api.cerebras.ai/v1",
                   },
               }

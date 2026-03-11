@@ -143,7 +143,7 @@ function compareVersions(current: string, latest: string): number {
   return 0
 }
 
-async function fetchJson(url: string, headers: Record<string, string> = {}) {
+async function fetchJson(url: string, headers: Record<string, string> = {}, timeoutMs = 10000) {
   return await new Promise<unknown>((resolve, reject) => {
     const target = new URL(url)
     const requester = target.protocol === 'https:' ? httpsRequest : httpRequest
@@ -174,6 +174,9 @@ async function fetchJson(url: string, headers: Record<string, string> = {}) {
       }
     )
     req.on('error', reject)
+    req.setTimeout(timeoutMs, () => {
+      req.destroy(new Error(`Request timed out after ${timeoutMs}ms`))
+    })
     req.end()
   })
 }
