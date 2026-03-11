@@ -14,6 +14,9 @@ contextBridge.exposeInMainWorld('osmium', {
     clearChecks: () => ipcRenderer.invoke('store:clear-checks'),
     getPath: () => ipcRenderer.invoke('store:get-path')
   },
+  updates: {
+    check: () => ipcRenderer.invoke('updates:check')
+  },
   check: {
     run: (trackInput: string) => ipcRenderer.invoke('check:run', trackInput),
     onProgress: (callback: (event: unknown) => void) => {

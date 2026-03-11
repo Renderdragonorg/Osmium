@@ -48,12 +48,18 @@ export function validateConfig(): AppConfig {
         tavily: {
             apiKey: process.env.TAVILY_API_KEY,
         },
-        ...(process.env.GROQ_API_KEY
+        discordWebhook: process.env.DISCORD_WEBHOOK_URL
             ? {
-                  groq: {
-                      apiKey: process.env.GROQ_API_KEY,
-                      model: process.env.GROQ_MODEL || "qwen/qwen3-32b",
-                      baseURL: "https://api.groq.com/openai/v1",
+                  url: process.env.DISCORD_WEBHOOK_URL,
+                  customMessage: process.env.DISCORD_WEBHOOK_CUSTOM_MESSAGE,
+              }
+            : undefined,
+        ...(process.env.CEREBRAS_API_KEY
+            ? {
+                  cerebras: {
+                      apiKey: process.env.CEREBRAS_API_KEY,
+                      model: process.env.CEREBRAS_MODEL || "gpt-oss-120b",
+                      baseURL: "https://api.cerebras.ai/v1",
                   },
               }
             : {}),

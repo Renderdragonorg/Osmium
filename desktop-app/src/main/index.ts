@@ -1,6 +1,8 @@
-import { app, BrowserWindow, ipcMain, shell, nativeImage } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, nativeImage, session } from 'electron'
 import { join, dirname } from 'path'
 import { fileURLToPath, pathToFileURL } from 'url'
+import { request as httpRequest } from 'http'
+import { request as httpsRequest } from 'https'
 import Store from 'electron-store'
 import { existsSync } from 'fs'
 
@@ -21,8 +23,8 @@ declare const __ENV_NOCODE_SPOTIFY_TOKEN__: string
 declare const __ENV_TAVILY_API_KEY__: string
 declare const __ENV_ACOUSTID_API_KEY__: string
 declare const __ENV_DISCOGS_TOKEN__: string
-declare const __ENV_GROQ_API_KEY__: string
-declare const __ENV_GROQ_MODEL__: string
+declare const __ENV_CEREBRAS_API_KEY__: string
+declare const __ENV_CEREBRAS_MODEL__: string
 
 function injectEnv() {
   const vars: Record<string, string> = {
@@ -35,8 +37,8 @@ function injectEnv() {
     TAVILY_API_KEY: __ENV_TAVILY_API_KEY__,
     ACOUSTID_API_KEY: __ENV_ACOUSTID_API_KEY__,
     DISCOGS_TOKEN: __ENV_DISCOGS_TOKEN__,
-    GROQ_API_KEY: __ENV_GROQ_API_KEY__,
-    GROQ_MODEL: __ENV_GROQ_MODEL__,
+    CEREBRAS_API_KEY: __ENV_CEREBRAS_API_KEY__,
+    CEREBRAS_MODEL: __ENV_CEREBRAS_MODEL__,
   }
   for (const [key, value] of Object.entries(vars)) {
     if (value && !process.env[key]) {
@@ -113,6 +115,118 @@ const store = new Store<{ checks: CopyrightVerdict[] }>({
 
 let mainWindow: BrowserWindow | null = null
 let loadTimeout: NodeJS.Timeout | null = null
+
+const UPDATE_REPO = {
+  owner: 'Renderdragonorg',
+  repo: 'Osmium'
+}
+
+function parseVersion(value: string): number[] | null {
+  const cleaned = value.trim().replace(/^v/i, '').split('-')[0]
+  const parts = cleaned.split('.')
+  if (parts.length === 0) return null
+  const numbers = parts.map((part) => Number(part))
+  if (numbers.some((num) => Number.isNaN(num))) return null
+  return numbers
+}
+
+function compareVersions(current: string, latest: string): number {
+  const currentParts = parseVersion(current) ?? []
+  const latestParts = parseVersion(latest) ?? []
+  const maxLen = Math.max(currentParts.length, latestParts.length)
+  for (let i = 0; i < maxLen; i += 1) {
+    const a = currentParts[i] ?? 0
+    const b = latestParts[i] ?? 0
+    if (a > b) return 1
+    if (a < b) return -1
+  }
+  return 0
+}
+
+async function fetchJson(url: string, headers: Record<string, string> = {}, timeoutMs = 10000) {
+  return await new Promise<unknown>((resolve, reject) => {
+    const target = new URL(url)
+    const requester = target.protocol === 'https:' ? httpsRequest : httpRequest
+    const req = requester(
+      {
+        method: 'GET',
+        hostname: target.hostname,
+        port: target.port,
+        path: `${target.pathname}${target.search}`,
+        headers
+      },
+      (res) => {
+        let data = ''
+        res.on('data', (chunk) => {
+          data += chunk
+        })
+        res.on('end', () => {
+          if (res.statusCode && res.statusCode >= 400) {
+            reject(new Error(`Request failed with status ${res.statusCode}`))
+            return
+          }
+          try {
+            resolve(JSON.parse(data))
+          } catch (error) {
+            reject(error)
+          }
+        })
+      }
+    )
+    req.on('error', reject)
+    req.setTimeout(timeoutMs, () => {
+      req.destroy(new Error(`Request timed out after ${timeoutMs}ms`))
+    })
+    req.end()
+  })
+}
+
+async function fetchLatestRelease() {
+  const url = `https://api.github.com/repos/${UPDATE_REPO.owner}/${UPDATE_REPO.repo}/releases/latest`
+  const headers = {
+    'User-Agent': 'Osmium-Desktop',
+    Accept: 'application/vnd.github+json'
+  }
+  return await fetchJson(url, headers)
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function checkUrlReady(url: string, timeoutMs = 2000): Promise<boolean> {
+  return await new Promise((resolve) => {
+    const target = new URL(url)
+    const requester = target.protocol === 'https:' ? httpsRequest : httpRequest
+    const req = requester(
+      {
+        method: 'HEAD',
+        hostname: target.hostname,
+        port: target.port,
+        path: target.pathname
+      },
+      (res) => {
+        res.resume()
+        resolve(res.statusCode ? res.statusCode < 500 : false)
+      }
+    )
+    req.on('error', () => resolve(false))
+    req.setTimeout(timeoutMs, () => {
+      req.destroy()
+      resolve(false)
+    })
+    req.end()
+  })
+}
+
+async function waitForRenderer(url: string, timeoutMs = 30000, intervalMs = 500): Promise<boolean> {
+  const start = Date.now()
+  while (Date.now() - start < timeoutMs) {
+    if (await checkUrlReady(url)) return true
+    await delay(intervalMs)
+  }
+  return false
+}
 
 function showLoadError(errorTitle: string, details: string) {
   const html = `<!doctype html>
@@ -192,14 +306,26 @@ async function createWindow() {
     }
   })
 
+  const loadTimeoutMs = app.isPackaged ? 10000 : 30000
   loadTimeout = setTimeout(() => {
     const url = mainWindow?.webContents.getURL() || 'unknown'
     showLoadError('Renderer did not finish loading', `URL: ${url}`)
-  }, 10000)
+  }, loadTimeoutMs)
 
   const startURL = !app.isPackaged
     ? (process.env.ELECTRON_RENDERER_URL || 'http://localhost:5173')
     : pathToFileURL(join(__dirname, '../renderer/index.html')).href
+
+  if (!app.isPackaged) {
+    const ready = await waitForRenderer(startURL)
+    if (!ready) {
+      showLoadError(
+        'Renderer dev server not reachable',
+        `URL: ${startURL}\nMake sure the renderer dev server is running (npm run dev in desktop-app).`
+      )
+      return
+    }
+  }
 
   mainWindow.loadURL(startURL)
 
@@ -208,7 +334,29 @@ async function createWindow() {
   }
 }
 
-app.whenReady().then(createWindow)
+function setContentSecurityPolicy() {
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; " +
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+          "style-src 'self' 'unsafe-inline'; " +
+          "img-src 'self' data: https:; " +
+          "font-src 'self' data:; " +
+          "connect-src 'self' https://api.spotify.com https://accounts.spotify.com https://open.spotify.com https://api.openrouter.ai https://api.cerebras.ai https://api.tavily.com https://coverartarchive.org https://musicbrainz.org https://api.acoustid.org https://api.discogs.com https://api.github.com wss: ws:; " +
+          "frame-src 'none';"
+        ]
+      }
+    })
+  })
+}
+
+app.whenReady().then(() => {
+  setContentSecurityPolicy()
+  createWindow()
+})
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
@@ -232,6 +380,30 @@ ipcMain.handle('shell:open-external', async (_event, url: string) => {
 ipcMain.handle('store:get-checks', () => store.get('checks'))
 ipcMain.handle('store:clear-checks', () => store.set('checks', []))
 ipcMain.handle('store:get-path', () => store.path)
+
+ipcMain.handle('updates:check', async () => {
+  try {
+    const currentVersion = app.getVersion()
+    const release = (await fetchLatestRelease()) as { tag_name?: string; html_url?: string }
+    const latestVersion = release.tag_name ? release.tag_name.replace(/^v/i, '') : undefined
+    if (!latestVersion || !release.html_url) {
+      return { success: false, error: 'Unable to determine latest release.' }
+    }
+    const updateAvailable = compareVersions(currentVersion, latestVersion) < 0
+    return {
+      success: true,
+      updateAvailable,
+      currentVersion,
+      latestVersion,
+      releaseUrl: release.html_url
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    }
+  }
+})
 
 ipcMain.handle('check:run', async (_event, trackInput: string) => {
   try {

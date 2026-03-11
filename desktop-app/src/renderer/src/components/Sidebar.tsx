@@ -1,4 +1,5 @@
 import type { CheckSession } from '../types'
+import ShinyText from '../../../../shiny-text/shinytext'
 
 interface Props {
   sessions: CheckSession[]
@@ -38,7 +39,7 @@ export default function Sidebar({ sessions, activeId, onSelect, onHome }: Props)
               </div>
               <div className="flex items-center gap-1 mt-1">
                 {session.status === 'running' && (
-                  <span className="text-xs text-osmium animate-pulse">Running...</span>
+                  <ShinyText text="Running..." speed={1.5} color="#b5b5b5" shineColor="#ffffff" className="text-xs" />
                 )}
                 {session.status === 'completed' && session.verdict && (
                   <RiskBadge level={session.verdict.riskLevel} />

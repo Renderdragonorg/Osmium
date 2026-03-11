@@ -14,6 +14,9 @@ electron.contextBridge.exposeInMainWorld("osmium", {
     clearChecks: () => electron.ipcRenderer.invoke("store:clear-checks"),
     getPath: () => electron.ipcRenderer.invoke("store:get-path")
   },
+  updates: {
+    check: () => electron.ipcRenderer.invoke("updates:check")
+  },
   check: {
     run: (trackInput) => electron.ipcRenderer.invoke("check:run", trackInput),
     onProgress: (callback) => {

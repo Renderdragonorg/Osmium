@@ -10,6 +10,11 @@ export default function App() {
   const [sessions, setSessions] = useState<CheckSession[]>([])
   const [activeSession, setActiveSession] = useState<CheckSession | null>(null)
   const [isChecking, setIsChecking] = useState(false)
+  const [updateInfo, setUpdateInfo] = useState<{
+    currentVersion: string
+    latestVersion: string
+    releaseUrl: string
+  } | null>(null)
 
   useEffect(() => {
     window.osmium.store.getChecks().then((checks) => {
@@ -20,6 +25,18 @@ export default function App() {
       }))
       setSessions(existing)
     })
+  }, [])
+
+  useEffect(() => {
+    window.osmium.updates.check().then((result) => {
+      if (result.success && result.updateAvailable && result.latestVersion && result.releaseUrl && result.currentVersion) {
+        setUpdateInfo({
+          currentVersion: result.currentVersion,
+          latestVersion: result.latestVersion,
+          releaseUrl: result.releaseUrl
+        })
+      }
+    }).catch(() => undefined)
   }, [])
 
   const startCheck = async (input: string) => {
@@ -79,6 +96,25 @@ export default function App() {
 
   return (
     <div className="h-full flex flex-col bg-bg-primary">
+      {updateInfo && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-bg-secondary border border-white/10 rounded-lg p-6 w-full max-w-md text-center">
+            <div className="text-osmium text-lg font-semibold mb-2">Update Required</div>
+            <div className="text-white/60 text-sm mb-4">
+              A new version is available. Please update to continue using Osmium.
+            </div>
+            <div className="text-xs text-white/40 mb-4">
+              Current: {updateInfo.currentVersion} • Latest: {updateInfo.latestVersion}
+            </div>
+            <button
+              onClick={() => window.osmium.shell.openExternal(updateInfo.releaseUrl)}
+              className="w-full px-4 py-2 bg-osmium text-black rounded text-sm font-medium hover:bg-osmium/90"
+            >
+              Download Latest Release
+            </button>
+          </div>
+        </div>
+      )}
       <TitleBar />
       <div className="flex-1 flex overflow-hidden">
         <Sidebar 
