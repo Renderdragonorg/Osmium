@@ -87,6 +87,9 @@ jobs:
           DISCOGS_TOKEN: ${{ secrets.DISCOGS_TOKEN || vars.DISCOGS_TOKEN }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY || vars.GROQ_API_KEY }}
           GROQ_MODEL: ${{ secrets.GROQ_MODEL || vars.GROQ_MODEL }}
+          CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY || vars.CEREBRAS_API_KEY }}
+          CEREBRAS_MODEL: ${{ secrets.CEREBRAS_MODEL || vars.CEREBRAS_MODEL }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL || vars.DISCORD_WEBHOOK_URL }}
         run: npm run build
 
       # 3. Package with electron-builder
